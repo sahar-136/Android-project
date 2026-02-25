@@ -6,29 +6,83 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
+val SnapQuestFont = FontFamily.SansSerif // Default; replace if custom font added
+
 val Typography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = SnapQuestFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 34.sp,
+        letterSpacing = 0.sp,
+        lineHeight = 40.sp
+    ),
+    displayMedium = TextStyle( // Big numbers/stats if needed
+        fontFamily = SnapQuestFont,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 28.sp,
+        letterSpacing = 0.sp,
+        lineHeight = 36.sp
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = SnapQuestFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 28.sp,
+        letterSpacing = 0.sp,
+        lineHeight = 34.sp
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = SnapQuestFont,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 24.sp,
+        lineHeight = 30.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = SnapQuestFont,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+        letterSpacing = 0.15.sp,
+        lineHeight = 26.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = SnapQuestFont,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp,
+        letterSpacing = 0.1.sp,
+        lineHeight = 24.sp
+    ),
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = SnapQuestFont,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        letterSpacing = 0.5.sp,
+        lineHeight = 22.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = SnapQuestFont,
         fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
+        fontSize = 14.sp,
+        letterSpacing = 0.25.sp,
+        lineHeight = 18.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = SnapQuestFont,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        letterSpacing = 0.1.sp,
+        lineHeight = 20.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = SnapQuestFont,
+        fontWeight = FontWeight.Medium,
+        fontSize = 13.sp,
+        letterSpacing = 0.5.sp,
+        lineHeight = 16.sp
     ),
     labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
+        fontFamily = SnapQuestFont,
+        fontWeight = FontWeight.Normal,
         fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.5.sp,
+        lineHeight = 13.sp
     )
-    */
 )
