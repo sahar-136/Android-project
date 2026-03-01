@@ -1,4 +1,5 @@
 package com.example.version.models
+
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentId
 
@@ -7,19 +8,21 @@ data class User(
     val userId: String = "",
     val name: String = "",
     val email: String = "",
-    val profileImageUrl: String = "",        // ✅ FIXED - Consistent name & non-null
+    val username: String = "",               // <-- ADDED FIELD
+    val profileImageUrl: String = "",
     val fcmToken: String = "",
     val accountCreateDate: Timestamp = Timestamp.now(),
     val lastUploadDate: Timestamp? = null,
     val totalPhotos: Int = 0,
     val bio: String = "",
     val isVerified: Boolean = false
-){
+) {
     // Empty constructor required for Firestore deserialization
     constructor() : this(
         userId = "",
         name = "",
         email = "",
+        username = "",                       // <-- ADDED FIELD
         profileImageUrl = "",
         fcmToken = "",
         accountCreateDate = Timestamp.now(),

@@ -2,6 +2,8 @@ package com.example.version.di
 
 import com.example.version.repository.AuthRepository
 import com.example.version.repository.AuthRepositoryImpl
+import com.example.version.repository.FeedRepository
+import com.example.version.repository.FeedRepositoryImpl
 import com.example.version.repository.UploadRepository
 import com.example.version.repository.UploadRepositoryImpl
 import dagger.Binds
@@ -25,4 +27,11 @@ abstract class RepositoryModule {
     abstract fun bindUploadRepository(
         impl: UploadRepositoryImpl
     ): UploadRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindFeedRepository(
+        impl: FeedRepositoryImpl
+    ): FeedRepository
+
 }

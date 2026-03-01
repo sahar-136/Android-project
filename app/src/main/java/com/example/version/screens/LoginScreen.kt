@@ -1,5 +1,9 @@
 package com.example.version.screens
 
+import android.app.Activity
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,25 +29,26 @@ import androidx.compose.ui.unit.dp
 import com.example.version.viewmodel.AuthViewModel
 import com.example.version.util.Resource
 import com.example.version.ui.theme.*
+// If you have a Google logo vector, import it here
 
 @Composable
 fun LoginScreen(
     onSignUpClick: () -> Unit,
     onLoginSuccess: () -> Unit = {},
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    onGoogleSignInRequest: () -> Unit, // <-- Parent inject karega
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val loginState by viewModel.loginState.observeAsState()
+    val googleLoginState by viewModel.googleLoginState.observeAsState()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.linearGradient(colors = listOf(BlueStart, BlueMiddle, BlueEnd))
-            )
+            .background(Brush.linearGradient(colors = listOf(BlueStart, BlueMiddle, BlueEnd)))
     ) {
         Column(
             modifier = Modifier
@@ -52,9 +57,8 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo (put your camera vector/drawable here)
             Icon(
-                imageVector = Icons.Filled.Lock, // Camera vector recommended!
+                imageVector = Icons.Filled.Lock,
                 contentDescription = "Logo",
                 tint = ButtonTextWhite,
                 modifier = Modifier.size(60.dp)
@@ -73,7 +77,9 @@ fun LoginScreen(
                 leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().background(Color.White),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -85,7 +91,9 @@ fun LoginScreen(
                 leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().background(Color.White),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
@@ -113,7 +121,7 @@ fun LoginScreen(
             ) { Text("Log in", color = ButtonTextWhite, style = Typography.labelLarge) }
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Show login errors/success/loading
+            // Email Login Feedback
             when (loginState) {
                 is Resource.Loading -> CircularProgressIndicator()
                 is Resource.Error -> Text(
@@ -139,17 +147,34 @@ fun LoginScreen(
                 Divider(modifier = Modifier.weight(1f), color = Color.White)
             }
             Spacer(modifier = Modifier.height(10.dp))
+
+            // Google login button
             Button(
-                onClick = { /* Handle Google login */ },
+                onClick = { onGoogleSignInRequest() },
                 shape = RoundedCornerShape(22.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                 modifier = Modifier.fillMaxWidth().height(50.dp)
             ) {
-                // Placeholder icon
+                // Replace with real Google logo if available
                 Icon(Icons.Filled.Email, contentDescription = "Google", tint = BlueMiddle, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Continue with Google", color = BlueMiddle, style = Typography.labelLarge)
             }
+
+            // Google login feedback
+            when (googleLoginState) {
+                is Resource.Loading -> CircularProgressIndicator()
+                is Resource.Error -> Text(
+                    (googleLoginState as Resource.Error).message ?: "Google login failed",
+                    color = Color.Red,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+                is Resource.Success -> {
+                    LaunchedEffect(key1 = "googleLoginSuccess") { onLoginSuccess() }
+                }
+                else -> {}
+            }
+
             Spacer(modifier = Modifier.height(18.dp))
             TextButton(onClick = onSignUpClick) {
                 Text("Don't have an account? Sign up", style = Typography.labelSmall, color = ButtonTextWhite)

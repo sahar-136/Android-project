@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.snapquest"
+    namespace = "com.example.version"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.snapquest"
+        applicationId = "com.example.version"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -51,6 +51,8 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
+    implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.androidx.compose.foundation)
 
 
 
@@ -87,4 +89,9 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
 
+
+    // Latest official AndroidX Lifecycle LiveData KTX
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.10.0")
+// Latest official AndroidX Lifecycle ViewModel KTX
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
 }
