@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.googleid)
     implementation(libs.androidx.compose.runtime.livedata)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.play.services.auth)
 
 
 
