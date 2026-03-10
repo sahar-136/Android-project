@@ -4,16 +4,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.version.models.Post
 import com.example.version.ui.components.FeedPostCard
@@ -21,154 +23,223 @@ import com.example.version.util.Resource
 import com.example.version.viewmodel.FeedViewModel
 import com.example.version.viewmodel.AuthViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.version.ui.theme.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedScreen(
     navController: NavController,
+    onBackToLogin: () -> Unit = {}, // ✅ NEW PARAMETER FOR BACK TO LOGIN
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val feedViewModel: FeedViewModel = hiltViewModel()
     val feedState by feedViewModel.feedPosts.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    // ⭐ Deep Royal Purple Background - Same as Login/Register
-    val royalDark = Color(0xFF14082B)
-    val royalDeep = Color(0xFF2A0E4A)
-    val royalRich = Color(0xFF3E1C6D)
-
-    // ⭐ Soft Shine Glow (subtle)
-    val royalGlow = Color(0xFF6A35B8).copy(alpha = 0.25f)
-
-    // ⭐ Deep Peach Colors
-    val deepPeachStart = Color(0xFFE8765C)
-    val deepPeachEnd = Color(0xFFD45C47)
-
-    Box(
+    // Clean layout with scrollable content
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                // Deep Royal Purple Background
-                Brush.verticalGradient(
-                    colors = listOf(
-                        royalRich,
-                        royalDeep,
-                        royalDark
-                    )
-                )
-            )
+            .background(AppColors.BackgroundWhite) // ✅ WHITE SCREEN BACKGROUND
     ) {
-        // ✨ Deep Lines & Bubbles - Radial Gradient with Overlapping Effects
+        // DARK ORANGE TOP BAR - BLACK ICONS & TEXT
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            royalGlow,
-                            Color.Transparent,
-                            Color(0xFF4A2C85).copy(alpha = 0.15f) // Deep lines effect
-                        ),
-                        radius = 1200f
-                    )
-                )
-        )
-
-        // Royal Glow Effect - Subtle Background Shine
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF5B2C87).copy(alpha = 0.1f),
-                            Color.Transparent
-                        ),
-                        radius = 800f
-                    )
-                )
-        )
-
-        Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("Home", color = Color.White) },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent // Transparent to show background
-                    ),
-                    actions = {
-                        IconButton(
-                            onClick = { showLogoutDialog = true }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.ExitToApp,
-                                contentDescription = "Logout",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                )
-            },
-            floatingActionButton = {
-                // Deep Peach FAB with Gradient
-                FloatingActionButton(
-                    onClick = { navController.navigate("upload") },
-                    containerColor = Color.Transparent,
-                    contentColor = Color.White,
-                    modifier = Modifier
-                        .navigationBarsPadding()
-                        .padding(bottom = 16.dp, end = 16.dp)
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(deepPeachStart, deepPeachEnd)
-                            ),
-                            shape = androidx.compose.foundation.shape.CircleShape
-                        )
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Upload")
-                }
-            },
-            containerColor = Color.Transparent // Transparent to show background
-        ) { innerPadding ->
-            Box(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
+                .fillMaxWidth()
+                .background(AppColors.PrimaryOrange) // ✅ DARK ORANGE TOP BAR
+                .statusBarsPadding() // Handle status bar
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                when (feedState) {
-                    is Resource.Loading -> CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center),
-                        color = Color.White
+                //  LEFT SIDE - BLACK BACK ARROW (DIRECT TO LOGIN)
+                IconButton(
+                    onClick = { onBackToLogin() }, // DIRECT TO LOGIN - NO DIALOG
+                    modifier = Modifier.size(40.dp) // Proper touch target
+                ) {
+                    Icon(
+                        Icons.Filled.ArrowBack,
+                        contentDescription = "Back to Login", // Updated description
+                        tint = AppColors.BlackText, // BLACK BACK ARROW
+                        modifier = Modifier.size(24.dp)
                     )
-                    is Resource.Error -> Text(
-                        (feedState as Resource.Error).message ?: "Error loading posts",
-                        color = Color.White,
-                        modifier = Modifier.align(Alignment.Center)
+                }
+
+                // CENTER - "FEED" TITLE
+                Text(
+                    "Feed", // CHANGED FROM "Home" TO "Feed"
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.BlackText // BLACK TEXT
+                )
+
+                // RIGHT SIDE - BLACK LOGOUT ICON (WITH CONFIRMATION)
+                IconButton(
+                    onClick = { showLogoutDialog = true }, // SHOWS CONFIRMATION DIALOG
+                    modifier = Modifier.size(40.dp) // Proper touch target
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ExitToApp,
+                        contentDescription = "Logout",
+                        tint = AppColors.BlackText, // BLACK LOGOUT ICON
+                        modifier = Modifier.size(24.dp)
                     )
-                    is Resource.Success<*> -> {
-                        val posts = (feedState as? Resource.Success<List<Post>>)?.data ?: emptyList()
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(vertical = 6.dp, horizontal = 16.dp)
-                        ) {
-                            items(posts) { post ->
-                                // Simple FeedPostCard - No Extra Parameters
-                                FeedPostCard(post = post)
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
-                        }
-                    }
-                    else -> {}
                 }
             }
         }
 
-        // --- Logout Confirmation Dialog ---
+        // CONTENT AREA - WHITE BACKGROUND
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppColors.BackgroundWhite)
+        ) {
+            when (feedState) {
+                is Resource.Loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = AppColors.PrimaryOrange,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "Unable to load posts",
+                                color = AppColors.TextGray,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                (feedState as Resource.Error).message ?: "Please try again later",
+                                color = AppColors.TextGray,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+                is Resource.Success<*> -> {
+                    val posts = (feedState as? Resource.Success<List<Post>>)?.data ?: emptyList()
+
+                    if (posts.isEmpty()) {
+                        // Empty state
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    "No posts yet",
+                                    color = AppColors.BlackText,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Be the first to share a photo!",
+                                    color = AppColors.TextGray,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { navController.navigate("upload") },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = AppColors.PrimaryOrange
+                                    ),
+                                    shape = RoundedCornerShape(20.dp)
+                                ) {
+                                    Text(
+                                        "Upload Photo",
+                                        color = AppColors.ButtonTextWhite,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Posts list with proper padding for top bar
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                top = 16.dp, // Space after top bar
+                                bottom = 100.dp, // Space for FAB
+                                start = 16.dp,
+                                end = 16.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(posts) { post ->
+                                // Clean post card
+                                FeedPostCard(
+                                    post = post,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            color = AppColors.LightGray,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .padding(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                else -> {}
+            }
+
+            // FLOATING ACTION BUTTON - Orange
+            FloatingActionButton(
+                onClick = { navController.navigate("upload") },
+                containerColor = AppColors.PrimaryOrange,
+                contentColor = AppColors.ButtonTextWhite,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 24.dp, end = 24.dp)
+                    .size(56.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Add,
+                    contentDescription = "Upload",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        // LOGOUT CONFIRMATION DIALOG
         if (showLogoutDialog) {
             AlertDialog(
                 onDismissRequest = { showLogoutDialog = false },
-                title = { Text("Logout", color = Color.White) },
-                text = { Text("Are you sure you want to logout?", color = Color.White) },
+                title = {
+                    Text(
+                        "Logout",
+                        color = AppColors.BlackText,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                text = {
+                    Text(
+                        "Are you sure you want to logout?",
+                        color = AppColors.TextGray,
+                        fontSize = 14.sp
+                    )
+                },
                 confirmButton = {
                     Button(
                         onClick = {
@@ -179,26 +250,30 @@ fun FeedScreen(
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
+                            containerColor = AppColors.ErrorRed
                         ),
-                        modifier = Modifier.background(
-                            Brush.horizontalGradient(
-                                colors = listOf(Color.Red, Color(0xFFE53E3E))
-                            ),
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
-                        )
+                        shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Logout", color = Color.White)
+                        Text(
+                            "Logout",
+                            color = AppColors.ButtonTextWhite,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showLogoutDialog = false }) {
-                        Text("Cancel", color = Color.White)
+                    TextButton(
+                        onClick = { showLogoutDialog = false }
+                    ) {
+                        Text(
+                            "Cancel",
+                            color = AppColors.PrimaryOrange,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 },
-                containerColor = royalDeep,
-                titleContentColor = Color.White,
-                textContentColor = Color.White
+                containerColor = AppColors.BackgroundWhite,
+                shape = RoundedCornerShape(16.dp)
             )
         }
     }

@@ -16,10 +16,10 @@ class FeedRepositoryImpl @Inject constructor(
     override fun getFeedPosts(): Flow<Resource<List<Post>>> = callbackFlow {
         trySend(Resource.Loading)
 
+        // SIMPLE QUERY - NO INDEX NEEDED
         val query = firestore.collection("posts")
-            .whereEqualTo("isDeleted", false) // Only show non-deleted posts
             .orderBy("uploadTimestamp", Query.Direction.DESCENDING)
-            .limit(30) // First batch: 30 recent posts
+            .limit(50) // Increased limit for better filtering
 
         val listener = query.addSnapshotListener { snapshot, error ->
             if (error != null) {
@@ -27,7 +27,12 @@ class FeedRepositoryImpl @Inject constructor(
                 return@addSnapshotListener
             }
 
-            val posts = snapshot?.toObjects(Post::class.java) ?: emptyList()
+            //  CLIENT-SIDE FILTERING - NO INDEX REQUIRED
+            val posts = snapshot?.toObjects(Post::class.java)
+                ?.filter { post ->
+                    post.isDeleted == false  // Only non-deleted posts
+                } ?: emptyList()
+
             trySend(Resource.Success(posts))
         }
         awaitClose { listener.remove() }

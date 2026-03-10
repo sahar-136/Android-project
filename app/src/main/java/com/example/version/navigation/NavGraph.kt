@@ -29,9 +29,6 @@ fun AppNavGraph(navController: NavHostController) {
                     navController.navigate(Routes.FEED) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
-                },
-                onGoogleSignInRequest = {
-                    // TODO: Google sign-in logic goes here
                 }
             )
         }
@@ -43,13 +40,18 @@ fun AppNavGraph(navController: NavHostController) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 },
-                onGoogleSignUpRequest = {
-                    // TODO: Google sign-up logic goes here
-                }
             )
         }
         composable(Routes.FEED) {
-            FeedScreen(navController)
+            FeedScreen(
+                navController = navController,
+
+                onBackToLogin = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) // Clear entire navigation stack
+                    }
+                }
+            )
         }
         composable(Routes.UPLOAD) {
             UploadScreen(navController)

@@ -8,7 +8,7 @@ data class User(
     val userId: String = "",
     val name: String = "",
     val email: String = "",
-    val username: String = "",               // <-- ADDED FIELD
+    val username: String = "",
     val profileImageUrl: String = "",
     val fcmToken: String = "",
     val accountCreateDate: Timestamp = Timestamp.now(),
@@ -22,7 +22,7 @@ data class User(
         userId = "",
         name = "",
         email = "",
-        username = "",                       // <-- ADDED FIELD
+        username = "",
         profileImageUrl = "",
         fcmToken = "",
         accountCreateDate = Timestamp.now(),

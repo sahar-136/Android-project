@@ -22,17 +22,18 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.version.viewmodel.UploadViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.example.version.util.Resource
+import com.example.version.ui.theme.AppColors
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -49,18 +50,6 @@ fun UploadScreen(navController: NavController) {
 
     val context = LocalContext.current
 
-    // ⭐ Deep Royal Purple Background - Same as Login/Register
-    val royalDark = Color(0xFF14082B)
-    val royalDeep = Color(0xFF2A0E4A)
-    val royalRich = Color(0xFF3E1C6D)
-
-    // ⭐ Soft Shine Glow (subtle)
-    val royalGlow = Color(0xFF6A35B8).copy(alpha = 0.25f)
-
-    // ⭐ Deep Peach Colors
-    val deepPeachStart = Color(0xFFE8765C)
-    val deepPeachEnd = Color(0xFFD45C47)
-
     // Gallery picker
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -68,7 +57,7 @@ fun UploadScreen(navController: NavController) {
         imageUri = uri
     }
 
-    // Camera launcher that captures image to URI
+    // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -77,303 +66,311 @@ fun UploadScreen(navController: NavController) {
         }
     }
 
-    Box(
+    // CLEAN LAYOUT WITH PROPER SPACING
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                // Deep Royal Purple Background
-                Brush.verticalGradient(
-                    colors = listOf(
-                        royalRich,
-                        royalDeep,
-                        royalDark
-                    )
-                )
-            )
+            .background(AppColors.BackgroundWhite) //WHITE SCREEN BACKGROUND
     ) {
-        // ✨ Deep Lines & Bubbles - Radial Gradient with Overlapping Effects
+        // DARK ORANGE TOP BAR - BLACK ARROW & TEXT
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            royalGlow,
-                            Color.Transparent,
-                            Color(0xFF4A2C85).copy(alpha = 0.15f) // Deep lines effect
-                        ),
-                        radius = 1200f
-                    )
-                )
-        )
-
-        // Royal Glow Effect - Subtle Background Shine
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF5B2C87).copy(alpha = 0.1f),
-                            Color.Transparent
-                        ),
-                        radius = 800f
-                    )
-                )
-        )
-
-        Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("New Post", color = Color.White) },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                        }
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent // Transparent to show background
-                    )
-                )
-            },
-            containerColor = Color.Transparent // Transparent to show background
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .background(AppColors.PrimaryOrange) // DARK ORANGE TOP BAR
+                .statusBarsPadding() // Handle status bar
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // FIXED: Image preview area with centered text
-                if (imageUri != null) {
-                    AsyncImage(
-                        model = imageUri,
-                        contentDescription = "Selected image",
-                        modifier = Modifier
-                            .size(250.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .border(BorderStroke(3.dp, deepPeachStart), RoundedCornerShape(16.dp))
-                    )
-                } else {
-                    // Placeholder when no image selected - FIXED CENTERING
-                    Box(
-                        modifier = Modifier
-                            .size(250.dp)
-                            .background(Color.White, RoundedCornerShape(16.dp))
-                            .border(BorderStroke(3.dp, deepPeachStart), RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(20.dp) // Added padding for better layout
-                        ) {
-                            Icon(
-                                Icons.Filled.CameraAlt,
-                                contentDescription = null,
-                                tint = deepPeachStart,
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                "Add Your Photo",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = Color.Black,
-                                textAlign = TextAlign.Center // Center alignment
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                "Choose from gallery or take a new photo",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Gray,
-                                textAlign = TextAlign.Center, // FIXED: Center alignment
-                                modifier = Modifier.fillMaxWidth() // FIXED: Full width for proper centering
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Deep Peach Gradient Buttons - Equal size
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.size(40.dp) // Proper touch target
                 ) {
-                    // Gallery button with gradient
-                    Button(
-                        onClick = {
-                            galleryLauncher.launch("image/*")
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                        shape = RoundedCornerShape(25.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(deepPeachStart, deepPeachEnd)
-                                ),
-                                shape = RoundedCornerShape(25.dp)
-                            )
-                    ) {
-                        Icon(
-                            Icons.Filled.PhotoLibrary,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Gallery", color = Color.White)
-                    }
+                    Icon(
+                        Icons.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = AppColors.BlackText, // BLACK BACK ARROW
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp)) // Reduced spacing
+                Text(
+                    "New Post",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AppColors.BlackText // BLACK TEXT
+                )
+            }
+        }
 
-                    // Camera button with gradient
-                    Button(
-                        onClick = {
-                            val uri = createImageUri(context)
-                            tempImageUri = uri
-                            cameraLauncher.launch(uri)
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                        shape = RoundedCornerShape(25.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(deepPeachStart, deepPeachEnd)
-                                ),
-                                shape = RoundedCornerShape(25.dp)
-                            )
+        // SCROLLABLE CONTENT - PROPER SPACING
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 20.dp), // Consistent padding
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            // 📷 IMAGE PREVIEW AREA
+            if (imageUri != null) {
+                AsyncImage(
+                    model = imageUri,
+                    contentDescription = "Selected image",
+                    modifier = Modifier
+                        .size(260.dp) // Slightly smaller for better spacing
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            color = AppColors.LightGray,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                )
+            } else {
+                // Placeholder
+                Box(
+                    modifier = Modifier
+                        .size(260.dp) // Consistent with image size
+                        .background(
+                            color = AppColors.LightGray,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .border(
+                            width = 2.dp,
+                            color = AppColors.BorderGray,
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
                             Icons.Filled.CameraAlt,
                             contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                            tint = AppColors.TextGray,
+                            modifier = Modifier.size(64.dp) // Smaller icon
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Camera", color = Color.White)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Optional Caption section - White field
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        "Add Caption (Optional)",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = caption,
-                        onValueChange = { newValue ->
-                            if (newValue.text.length <= 500) {
-                                caption = newValue
-                            }
-                        },
-                        placeholder = {
-                            Text(
-                                "Share what makes this photo special... (Optional)",
-                                color = Color.Gray
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 4,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White.copy(alpha = 0.95f),
-                            unfocusedContainerColor = Color.White.copy(alpha = 0.95f),
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            cursorColor = deepPeachStart
-                        )
-                    )
-
-                    Text(
-                        "${caption.text.length}/500",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier.align(Alignment.End)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Deep Peach Upload Button - Always Peach Gradient
-                Button(
-                    onClick = {
-                        if (imageUri != null) {
-                            uploadViewModel.uploadPhoto(imageUri!!, caption.text)
-                        }
-                    },
-                    enabled = imageUri != null,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    shape = RoundedCornerShape(30.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                        .background(
-                            // Always peach gradient, regardless of enabled state
-                            Brush.horizontalGradient(
-                                colors = if (imageUri != null) {
-                                    listOf(deepPeachStart, deepPeachEnd)
-                                } else {
-                                    listOf(
-                                        deepPeachStart.copy(alpha = 0.5f),
-                                        deepPeachEnd.copy(alpha = 0.5f)
-                                    )
-                                }
-                            ),
-                            shape = RoundedCornerShape(30.dp)
-                        )
-                ) {
-                    Text(
-                        "UPLOAD PHOTO",
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(vertical = 4.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Status feedback
-                when (uploadState) {
-                    is Resource.Loading -> {
-                        CircularProgressIndicator(color = Color.White)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Uploading...", color = Color.White)
-                    }
-                    is Resource.Error -> {
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            (uploadState as Resource.Error).message ?: "Upload failed",
-                            color = Color.Red
+                            "Choose or take a photo",
+                            fontSize = 14.sp, // Smaller text
+                            color = AppColors.TextGray,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Medium
                         )
                     }
-                    is Resource.Success -> {
-                        Text(
-                            "✓ Photo uploaded successfully!",
-                            color = Color(0xFF4CAF50)
-                        )
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(1500)
-                            navController.popBackStack()
-                        }
-                    }
-                    else -> {}
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp)) //REDUCED SPACING
+
+            //GALLERY & CAMERA BUTTONS
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Gallery button
+                Button(
+                    onClick = { galleryLauncher.launch("image/*") },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppColors.PrimaryOrange
+                    ),
+                    shape = RoundedCornerShape(25.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.PhotoLibrary,
+                        contentDescription = null,
+                        tint = AppColors.ButtonTextWhite,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Gallery",
+                        color = AppColors.ButtonTextWhite,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // Camera button
+                Button(
+                    onClick = {
+                        val uri = createImageUri(context)
+                        tempImageUri = uri
+                        cameraLauncher.launch(uri)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppColors.PrimaryOrange
+                    ),
+                    shape = RoundedCornerShape(25.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.CameraAlt,
+                        contentDescription = null,
+                        tint = AppColors.ButtonTextWhite,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Camera",
+                        color = AppColors.ButtonTextWhite,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp)) // PROPER SPACING TO CAPTION
+
+            //CAPTION SECTION - CENTER POSITION
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Add Caption (Optional)",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = AppColors.BlackText
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = caption,
+                    onValueChange = { newValue ->
+                        if (newValue.text.length <= 200) {
+                            caption = newValue
+                        }
+                    },
+                    placeholder = {
+                        Text(
+                            "Write something about your photo...",
+                            color = AppColors.TextGray,
+                            fontSize = 14.sp
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 4,
+                    minLines = 3,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = AppColors.LightGray,
+                        unfocusedContainerColor = AppColors.LightGray,
+                        focusedBorderColor = AppColors.PrimaryOrange,
+                        unfocusedBorderColor = AppColors.BorderGray,
+                        focusedTextColor = AppColors.BlackText,
+                        unfocusedTextColor = AppColors.BlackText,
+                        cursorColor = AppColors.PrimaryOrange
+                    )
+                )
+
+                // Character counter
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        "${caption.text.length}/200",
+                        fontSize = 12.sp,
+                        color = AppColors.TextGray
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp)) // ✅ PROPER SPACING TO UPLOAD BUTTON
+
+            //UPLOAD BUTTON - PROPER POSITION
+            Button(
+                onClick = {
+                    if (imageUri != null) {
+                        uploadViewModel.uploadPhoto(imageUri!!, caption.text)
+                    }
+                },
+                enabled = imageUri != null,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AppColors.PrimaryOrange,           // Same dark orange when enabled
+                    disabledContainerColor = AppColors.PrimaryOrange    // Same dark orange when disabled
+                ),
+                shape = RoundedCornerShape(25.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text(
+                    "UPLOAD PHOTO",
+                    color = AppColors.ButtonTextWhite,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp)) // SPACING FOR STATUS
+
+            // STATUS FEEDBACK - COMPACT
+            when (uploadState) {
+                is Resource.Loading -> {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            color = AppColors.PrimaryOrange,
+                            modifier = Modifier.size(24.dp) // Smaller loader
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            "Uploading your photo...",
+                            color = AppColors.TextGray,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+                is Resource.Error -> {
+                    Text(
+                        (uploadState as Resource.Error).message ?: "Upload failed. Please try again.",
+                        color = AppColors.ErrorRed,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                is Resource.Success -> {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "✓ Photo uploaded successfully!",
+                            color = AppColors.SuccessGreen,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            "Returning to feed...",
+                            color = AppColors.TextGray,
+                            fontSize = 13.sp
+                        )
+                    }
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(2000)
+                        navController.popBackStack()
+                    }
+                }
+                else -> {}
+            }
+
+            Spacer(modifier = Modifier.height(20.dp)) //BOTTOM PADDING
         }
     }
 }

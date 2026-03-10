@@ -8,33 +8,31 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-// All color values will come from Colors.kt
-
+// Using AppColors from Color.kt
 private val DarkColorScheme = darkColorScheme(
-    primary = BlueStart,
-    secondary = BlueCyan,
-    background = BlueStart,
-    surface = BlueStart,
-    onPrimary = ButtonTextWhite,
-    onSecondary = ButtonTextWhite,
-    onBackground = ButtonTextWhite,
-    onSurface = ButtonTextWhite,
-    error = ErrorRed
+    primary = AppColors.PrimaryOrange,
+    secondary = AppColors.LightOrange,
+    background = AppColors.BlackText,
+    surface = AppColors.DarkGray,
+    onPrimary = AppColors.ButtonTextWhite,
+    onSecondary = AppColors.ButtonTextWhite,
+    onBackground = AppColors.ButtonTextWhite,
+    onSurface = AppColors.ButtonTextWhite,
+    error = AppColors.ErrorRed
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = BlueMiddle,
-    secondary = BlueCyan,
-    background = Color.White,
-    surface = TextFieldBackground,
-    onPrimary = ButtonTextWhite,
-    onSecondary = ButtonTextWhite,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    error = ErrorRed
+    primary = AppColors.PrimaryOrange,
+    secondary = AppColors.LightOrange,
+    background = AppColors.BackgroundWhite,
+    surface = AppColors.LightGray,
+    onPrimary = AppColors.ButtonTextWhite,
+    onSecondary = AppColors.ButtonTextWhite,
+    onBackground = AppColors.BlackText,
+    onSurface = AppColors.BlackText,
+    error = AppColors.ErrorRed
 )
 
 @Composable

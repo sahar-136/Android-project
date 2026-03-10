@@ -7,7 +7,7 @@ interface AuthRepository {
     suspend fun registerWithEmail(
         name: String,
         email: String,
-        username: String,   // <-- Username bhi required
+        username: String,
         password: String
     ): Resource<User>
 
@@ -16,9 +16,7 @@ interface AuthRepository {
         password: String
     ): Resource<User>
 
-    // idToken: from Google OneTap/SignIn API
-    // username: Only needed IF Google user is new (handle in ViewModel/UI)
-    //    -- see note below for detail
+
     suspend fun loginWithGoogle(
         idToken: String,
         username: String? = null  // <-- Pass if user is new

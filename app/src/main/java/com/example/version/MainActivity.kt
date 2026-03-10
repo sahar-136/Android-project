@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            VersionTheme { // <-- Fix here!
+            VersionTheme {
                 val navController = rememberNavController()
                 AppNavGraph(navController)
             }
