@@ -24,7 +24,7 @@ object AppColors {
     // 🔗 Links (from design)
     val LinkOrange = Color(0xFFFF8C00)           // "Forgot Password?", "Sign up" links
 
-    // ✅❌ Status Colors
+    // Status Colors
     val SuccessGreen = Color(0xFF4CAF50)         // Success messages
     val ErrorRed = Color(0xFFE53E3E)             // Error messages
 

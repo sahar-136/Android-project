@@ -1,13 +1,16 @@
 package com.example.version.navigation
 
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.version.screens.FeedScreen
 import com.example.version.screens.LoginScreen
 import com.example.version.screens.RegistrationScreen
-import com.example.version.screens.FeedScreen
 import com.example.version.screens.UploadScreen
+import com.example.version.viewmodel.AuthViewModel
 
 object Routes {
     const val LOGIN = "login"
@@ -17,11 +20,22 @@ object Routes {
 }
 
 @Composable
-fun AppNavGraph(navController: NavHostController) {
+fun AppNavGraph(
+    navController: NavHostController,
+    authViewModel: AuthViewModel = hiltViewModel()
+) {
+    val isLoggedIn by authViewModel.isLoggedIn.observeAsState(false)
+
+    //Decide start destination dynamically
+    val startDestination = remember(isLoggedIn) {
+        if (isLoggedIn) Routes.FEED else Routes.LOGIN
+    }
+
     NavHost(
         navController = navController,
-        startDestination = Routes.LOGIN
+        startDestination = startDestination
     ) {
+
         composable(Routes.LOGIN) {
             LoginScreen(
                 onSignUpClick = { navController.navigate(Routes.REGISTER) },
@@ -32,6 +46,7 @@ fun AppNavGraph(navController: NavHostController) {
                 }
             )
         }
+
         composable(Routes.REGISTER) {
             RegistrationScreen(
                 onBackClick = { navController.popBackStack() },
@@ -39,20 +54,23 @@ fun AppNavGraph(navController: NavHostController) {
                     navController.navigate(Routes.FEED) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
-                },
+                }
             )
         }
+
         composable(Routes.FEED) {
             FeedScreen(
                 navController = navController,
-
                 onBackToLogin = {
+                    // ✅ Back arrow direct to login and clears stack
+                    authViewModel.logout() // optional: if you want back arrow to logout too
                     navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) // Clear entire navigation stack
+                        popUpTo(0)
                     }
                 }
             )
         }
+
         composable(Routes.UPLOAD) {
             UploadScreen(navController)
         }

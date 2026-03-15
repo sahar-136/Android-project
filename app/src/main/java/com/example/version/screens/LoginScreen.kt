@@ -24,9 +24,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.version.auth.rememberGoogleSignInManager
+import com.example.version.ui.theme.AppColors
 import com.example.version.util.Resource
 import com.example.version.viewmodel.AuthViewModel
-import com.example.version.ui.theme.AppColors
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -42,7 +45,10 @@ fun LoginScreen(
     val loginState by viewModel.loginState.observeAsState()
     val googleLoginState by viewModel.googleLoginState.observeAsState()
 
-    // For username prompt (needed for first-time Google sign-in)
+    // Username availability state (re-used for Google username prompt)
+    val isUsernameAvailable by viewModel.isUsernameAvailable.observeAsState(null)
+
+    // For username prompt (needed for first-time Google sign-in only)
     var showUsernameDialog by remember { mutableStateOf(false) }
     var googleIdTokenPending by remember { mutableStateOf<String?>(null) }
     var googleUsername by remember { mutableStateOf("") }
@@ -51,18 +57,31 @@ fun LoginScreen(
     // UI error for Google flow
     var googleUiError by remember { mutableStateOf<String?>(null) }
 
+    val scope = rememberCoroutineScope()
+    var usernameCheckJob by remember { mutableStateOf<Job?>(null) }
+
+    fun resetGoogleDialogState() {
+        showUsernameDialog = false
+        googleUsername = ""
+        usernameError = null
+    }
+
     // Google One Tap manager
+    // IMPORTANT CHANGE:
+    // - Do NOT open username dialog immediately.
+    // - First try loginWithGoogle(token, null).
     val googleSignInManager = rememberGoogleSignInManager(
         onSignInResult = { idToken ->
             if (idToken.isNullOrBlank()) {
                 googleUiError = "Google sign-in failed: empty token."
                 return@rememberGoogleSignInManager
             }
-
+            googleUiError = null
             googleIdTokenPending = idToken
-            googleUsername = ""
-            usernameError = null
-            showUsernameDialog = true
+            resetGoogleDialogState()
+
+            // ✅ Try sign-in first WITHOUT username.
+            viewModel.loginWithGoogle(idToken, username = null)
         },
         onError = { msg ->
             googleUiError = msg
@@ -80,7 +99,15 @@ fun LoginScreen(
         googleSignInManager.setActivityResultLauncher(launcher)
     }
 
-    // Username dialog for Google users
+    // ✅ If repository says username is required, open dialog (first-time user only)
+    LaunchedEffect(googleLoginState) {
+        val msg = (googleLoginState as? Resource.Error)?.message.orEmpty()
+        if (msg.contains("Username is required", ignoreCase = true)) {
+            showUsernameDialog = true
+        }
+    }
+
+    // Username dialog for Google users (only first-time)
     if (showUsernameDialog) {
         AlertDialog(
             onDismissRequest = {
@@ -92,23 +119,44 @@ fun LoginScreen(
                 Column {
                     OutlinedTextField(
                         value = googleUsername,
-                        onValueChange = {
-                            googleUsername = it
+                        onValueChange = { newValue ->
+                            googleUsername = newValue
                             usernameError = null
+
+                            // ✅ Real-time username check (debounced)
+                            usernameCheckJob?.cancel()
+                            usernameCheckJob = scope.launch {
+                                delay(350)
+                                val cleaned = googleUsername.trim()
+                                if (cleaned.isNotBlank()) {
+                                    viewModel.checkUsernameAvailable(cleaned)
+                                }
+                            }
                         },
                         label = { Text("Username") },
                         singleLine = true,
                         isError = usernameError != null,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    when (isUsernameAvailable) {
+                        true -> Text("Username available", color = AppColors.SuccessGreen)
+                        false -> Text("Username taken", color = AppColors.ErrorRed)
+                        else -> Text(" ", color = AppColors.TextGray) // keeps spacing stable
+                    }
+
                     if (usernameError != null) {
                         Spacer(Modifier.height(8.dp))
                         Text(usernameError!!, color = AppColors.ErrorRed)
                     }
+
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Required only if this is your first time signing in with Google.",
-                        style = MaterialTheme.typography.bodySmall
+                        "Required only the first time you sign in with Google.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppColors.TextGray
                     )
                 }
             },
@@ -128,6 +176,12 @@ fun LoginScreen(
                             return@Button
                         }
 
+                        if (isUsernameAvailable == false) {
+                            usernameError = "Username already taken."
+                            return@Button
+                        }
+
+                        // ✅ Now complete first-time registration with provided username
                         viewModel.loginWithGoogle(token, cleaned)
                         showUsernameDialog = false
                         googleIdTokenPending = null
@@ -156,43 +210,41 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()) // ✅ SCROLLABLE
-                .padding(horizontal = 24.dp, vertical = 32.dp), // ✅ PROPER PADDING
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // TOP SECTION - Logo & Title
             Spacer(modifier = Modifier.height(40.dp))
 
             Icon(
                 imageVector = Icons.Filled.CameraAlt,
                 contentDescription = null,
                 tint = AppColors.PrimaryOrange,
-                modifier = Modifier.size(72.dp) // ✅ SLIGHTLY SMALLER
+                modifier = Modifier.size(72.dp)
             )
 
-            Spacer(modifier = Modifier.height(20.dp)) // ✅ REDUCED SPACING
+            Spacer(modifier = Modifier.height(20.dp))
 
             Text(
                 text = "SnapQuest",
-                fontSize = 28.sp, // ✅ SLIGHTLY SMALLER
+                fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = AppColors.BlackText,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(6.dp)) // ✅ REDUCED SPACING
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = "Welcome Back",
-                fontSize = 16.sp, // ✅ SLIGHTLY SMALLER
+                fontSize = 16.sp,
                 color = AppColors.TextGray,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(40.dp)) // ✅ PROPER SPACING
+            Spacer(modifier = Modifier.height(40.dp))
 
-            // INPUT SECTION
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -261,7 +313,6 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            //FORGOT PASSWORD - RIGHT ALIGNED
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -282,7 +333,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // LOGIN BUTTON
             Button(
                 onClick = {
                     viewModel.login(email, password)
@@ -302,7 +352,6 @@ fun LoginScreen(
                 )
             }
 
-            //STATE FEEDBACK - COMPACT
             when (loginState) {
                 is Resource.Loading -> {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -339,7 +388,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // OR DIVIDER - COMPACT
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -356,7 +404,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            //GOOGLE BUTTON
             Button(
                 onClick = {
                     googleUiError = null
@@ -392,7 +439,6 @@ fun LoginScreen(
                 }
             }
 
-            //GOOGLE ERRORS - COMPACT
             if (googleUiError != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -423,19 +469,15 @@ fun LoginScreen(
                     }
                 }
                 is Resource.Error -> {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        (googleLoginState as Resource.Error).message ?: "Google sign-in failed",
-                        color = AppColors.ErrorRed,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center
-                    )
-
                     val msg = (googleLoginState as Resource.Error).message ?: ""
-                    LaunchedEffect(msg) {
-                        if (msg.contains("Username is required", ignoreCase = true)) {
-                            showUsernameDialog = true
-                        }
+                    if (!msg.contains("Username is required", ignoreCase = true)) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            msg.ifBlank { "Google sign-in failed" },
+                            color = AppColors.ErrorRed,
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
                 is Resource.Success -> {
@@ -446,7 +488,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // SIGN UP LINK - COMPACT
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
@@ -469,7 +510,6 @@ fun LoginScreen(
                 }
             }
 
-            // BOTTOM PADDING
             Spacer(modifier = Modifier.height(24.dp))
         }
     }

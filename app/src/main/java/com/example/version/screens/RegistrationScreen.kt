@@ -12,7 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -25,10 +24,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.version.auth.rememberGoogleSignInManager
-import com.example.version.viewmodel.AuthViewModel
-import com.example.version.util.Resource
 import com.example.version.ui.theme.AppColors
+import com.example.version.util.Resource
+import com.example.version.viewmodel.AuthViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun RegistrationScreen(
@@ -49,19 +52,31 @@ fun RegistrationScreen(
     val googleLoginState by viewModel.googleLoginState.observeAsState()
     val isUsernameAvailable by viewModel.isUsernameAvailable.observeAsState(null)
 
-    // Google Sign-In Implementation
+    // Google Sign-In State
     var showUsernameDialog by remember { mutableStateOf(false) }
     var googleIdTokenPending by remember { mutableStateOf<String?>(null) }
     var googleUsername by remember { mutableStateOf("") }
     var usernameError by remember { mutableStateOf<String?>(null) }
     var googleUiError by remember { mutableStateOf<String?>(null) }
 
-    // Username real-time check
+    val scope = rememberCoroutineScope()
+    var usernameCheckJob by remember { mutableStateOf<Job?>(null) }
+
+    // Username real-time check for Email registration username field
     LaunchedEffect(username) {
-        if (username.isNotBlank()) viewModel.checkUsernameAvailable(username)
+        if (username.isNotBlank()) viewModel.checkUsernameAvailable(username.trim())
+    }
+
+    fun resetGoogleDialogState() {
+        showUsernameDialog = false
+        googleUsername = ""
+        usernameError = null
     }
 
     // Google Sign-In Manager
+    // ✅ IMPORTANT CHANGE:
+    // - Do NOT open username dialog immediately.
+    // - First try loginWithGoogle(token, null).
     val googleSignInManager = rememberGoogleSignInManager(
         onSignInResult = { idToken ->
             if (idToken.isNullOrBlank()) {
@@ -69,10 +84,12 @@ fun RegistrationScreen(
                 return@rememberGoogleSignInManager
             }
 
+            googleUiError = null
             googleIdTokenPending = idToken
-            googleUsername = ""
-            usernameError = null
-            showUsernameDialog = true
+            resetGoogleDialogState()
+
+            // ✅ Try sign-in first WITHOUT username.
+            viewModel.loginWithGoogle(idToken, username = null)
         },
         onError = { msg ->
             googleUiError = msg
@@ -90,21 +107,45 @@ fun RegistrationScreen(
         googleSignInManager.setActivityResultLauncher(launcher)
     }
 
-    // Username Dialog for Google Registration
+    // ✅ If repository says username is required, open dialog (first-time user only)
+    LaunchedEffect(googleLoginState) {
+        val msg = (googleLoginState as? Resource.Error)?.message.orEmpty()
+        if (msg.contains("Username is required", ignoreCase = true)) {
+            showUsernameDialog = true
+        }
+    }
+
+    // Username Dialog for Google first-time users
     if (showUsernameDialog) {
         AlertDialog(
             onDismissRequest = {
                 showUsernameDialog = false
                 googleIdTokenPending = null
             },
-            title = { Text("Choose a username", color = AppColors.BlackText, fontWeight = FontWeight.SemiBold) },
+            title = {
+                Text(
+                    "Choose a username",
+                    color = AppColors.BlackText,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
             text = {
                 Column {
                     OutlinedTextField(
                         value = googleUsername,
-                        onValueChange = {
-                            googleUsername = it
+                        onValueChange = { newValue ->
+                            googleUsername = newValue
                             usernameError = null
+
+                            // ✅ Real-time username check (debounced)
+                            usernameCheckJob?.cancel()
+                            usernameCheckJob = scope.launch {
+                                delay(350)
+                                val cleaned = googleUsername.trim()
+                                if (cleaned.isNotBlank()) {
+                                    viewModel.checkUsernameAvailable(cleaned)
+                                }
+                            }
                         },
                         label = { Text("Username", color = AppColors.TextGray) },
                         singleLine = true,
@@ -115,13 +156,23 @@ fun RegistrationScreen(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    when (isUsernameAvailable) {
+                        true -> Text("Username available", color = AppColors.SuccessGreen)
+                        false -> Text("Username taken", color = AppColors.ErrorRed)
+                        else -> Text(" ", color = AppColors.TextGray)
+                    }
+
                     if (usernameError != null) {
                         Spacer(Modifier.height(8.dp))
                         Text(usernameError!!, color = AppColors.ErrorRed, fontSize = 12.sp)
                     }
+
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "This will be your unique username for SnapQuest.",
+                        "This will be your unique username for SnapQuest (only required once).",
                         style = MaterialTheme.typography.bodySmall,
                         color = AppColors.TextGray
                     )
@@ -140,6 +191,11 @@ fun RegistrationScreen(
                         val cleaned = googleUsername.trim()
                         if (cleaned.isBlank()) {
                             usernameError = "Username can't be empty."
+                            return@Button
+                        }
+
+                        if (isUsernameAvailable == false) {
+                            usernameError = "Username already taken."
                             return@Button
                         }
 
@@ -162,18 +218,16 @@ fun RegistrationScreen(
         )
     }
 
-    // MAIN LAYOUT: WHITE BACKGROUND
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.BackgroundWhite) // WHITE SCREEN BACKGROUND
+            .background(AppColors.BackgroundWhite)
     ) {
-        //DARK ORANGE TOP BAR - BLACK ARROW & TEXT
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(AppColors.PrimaryOrange) // DARK ORANGE TOP BAR
-                .statusBarsPadding() // Handle status bar
+                .background(AppColors.PrimaryOrange)
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(
@@ -182,35 +236,32 @@ fun RegistrationScreen(
             ) {
                 IconButton(
                     onClick = onBackClick,
-                    modifier = Modifier.size(40.dp) // Proper touch target
+                    modifier = Modifier.size(40.dp)
                 ) {
                     Icon(
                         Icons.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = AppColors.BlackText, //BLACK BACK ARROW
+                        tint = AppColors.BlackText,
                         modifier = Modifier.size(24.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(4.dp)) // Reduced spacing
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     "Create Account",
-                    fontSize = 20.sp, // Slightly smaller
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = AppColors.BlackText // BLACK TEXT
+                    color = AppColors.BlackText
                 )
             }
         }
 
-        // SCROLLABLE CONTENT - WHITE BACKGROUND
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp), // Proper padding
+                .padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // Name field
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -241,7 +292,6 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Email field
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -272,7 +322,6 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Username field
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it },
@@ -301,7 +350,6 @@ fun RegistrationScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
 
-            // Username availability indicator
             when (isUsernameAvailable) {
                 true -> {
                     Row(
@@ -346,13 +394,12 @@ fun RegistrationScreen(
                     }
                 }
                 else -> {
-                    Spacer(modifier = Modifier.height(14.dp)) // Consistent spacing
+                    Spacer(modifier = Modifier.height(14.dp))
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Password field
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -394,7 +441,6 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Confirm password field
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
@@ -436,17 +482,21 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            //SIGN UP BUTTON
             Button(
                 onClick = {
                     if (password != confirmPassword) return@Button
                     if ((isUsernameAvailable == false) || username.isBlank() || name.isBlank() || !email.contains("@")) return@Button
-                    viewModel.register(name, email, username, password)
+                    viewModel.register(name, email, username.trim(), password)
                     focusManager.clearFocus()
                 },
-                enabled = isUsernameAvailable == true && name.isNotBlank() && email.isNotBlank() && username.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank(),
+                enabled = isUsernameAvailable == true &&
+                        name.isNotBlank() &&
+                        email.isNotBlank() &&
+                        username.isNotBlank() &&
+                        password.isNotBlank() &&
+                        confirmPassword.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = AppColors.PrimaryOrange, // ✅ SAME AS TOP BAR
+                    containerColor = AppColors.PrimaryOrange,
                     disabledContainerColor = AppColors.PrimaryOrange.copy(alpha = 0.6f)
                 ),
                 shape = RoundedCornerShape(25.dp),
@@ -462,7 +512,6 @@ fun RegistrationScreen(
                 )
             }
 
-            // Register state feedback
             when (registerState) {
                 is Resource.Loading -> {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -471,7 +520,7 @@ fun RegistrationScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
-                            color = AppColors.PrimaryOrange, // ✅ SAME AS TOP BAR
+                            color = AppColors.PrimaryOrange,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -499,7 +548,6 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Or divider
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -516,7 +564,6 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Google sign up button
             Button(
                 onClick = {
                     googleUiError = null
@@ -552,7 +599,6 @@ fun RegistrationScreen(
                 }
             }
 
-            // Google UI Error Display
             if (googleUiError != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -563,7 +609,6 @@ fun RegistrationScreen(
                 )
             }
 
-            // Google Login State Handling
             when (googleLoginState) {
                 is Resource.Loading -> {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -572,25 +617,28 @@ fun RegistrationScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
-                            color = AppColors.PrimaryOrange, // ✅ SAME AS TOP BAR
+                            color = AppColors.PrimaryOrange,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Creating account with Google...",
+                            "Signing in with Google...",
                             color = AppColors.TextGray,
                             fontSize = 13.sp
                         )
                     }
                 }
                 is Resource.Error -> {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        (googleLoginState as Resource.Error).message ?: "Google sign-up failed",
-                        color = AppColors.ErrorRed,
-                        fontSize = 13.sp,
-                        textAlign = TextAlign.Center
-                    )
+                    val msg = (googleLoginState as Resource.Error).message ?: ""
+                    if (!msg.contains("Username is required", ignoreCase = true)) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            msg.ifBlank { "Google sign-up failed" },
+                            color = AppColors.ErrorRed,
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
                 is Resource.Success -> {
                     LaunchedEffect(key1 = "googleRegisterSuccess") { onRegisterSuccess() }
@@ -600,7 +648,6 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Log in link
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
@@ -616,14 +663,14 @@ fun RegistrationScreen(
                 ) {
                     Text(
                         "Log In",
-                        color = AppColors.PrimaryOrange, // ✅ SAME AS TOP BAR
+                        color = AppColors.PrimaryOrange,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp)) // Bottom padding
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
