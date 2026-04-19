@@ -36,8 +36,8 @@ class UploadRepositoryImpl @Inject constructor(
             // 3. Upload file to Firebase Storage
             val fileName = "${userId}_${System.currentTimeMillis()}.jpg"
             val photoRef = storage.reference.child("postImages/$userId/$fileName")
-            val uploadTask = photoRef.putFile(fileUri).await()
-
+           // photoRef.putFile(fileUri).await()
+            val uploadTask=photoRef.putFile(fileUri).await()
             // 4. Get photo URL
             val downloadUrl = photoRef.downloadUrl.await().toString()
 

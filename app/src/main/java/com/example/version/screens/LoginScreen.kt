@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
@@ -80,7 +81,7 @@ fun LoginScreen(
             googleIdTokenPending = idToken
             resetGoogleDialogState()
 
-            // ✅ Try sign-in first WITHOUT username.
+            // Try sign-in first WITHOUT username.
             viewModel.loginWithGoogle(idToken, username = null)
         },
         onError = { msg ->
@@ -99,7 +100,7 @@ fun LoginScreen(
         googleSignInManager.setActivityResultLauncher(launcher)
     }
 
-    // ✅ If repository says username is required, open dialog (first-time user only)
+    // If repository says username is required, open dialog (first-time user only)
     LaunchedEffect(googleLoginState) {
         val msg = (googleLoginState as? Resource.Error)?.message.orEmpty()
         if (msg.contains("Username is required", ignoreCase = true)) {
@@ -123,7 +124,7 @@ fun LoginScreen(
                             googleUsername = newValue
                             usernameError = null
 
-                            // ✅ Real-time username check (debounced)
+                            // Real-time username check (debounced)
                             usernameCheckJob?.cancel()
                             usernameCheckJob = scope.launch {
                                 delay(350)
@@ -181,7 +182,7 @@ fun LoginScreen(
                             return@Button
                         }
 
-                        // ✅ Now complete first-time registration with provided username
+                        //  Now complete first-time registration with provided username
                         viewModel.loginWithGoogle(token, cleaned)
                         showUsernameDialog = false
                         googleIdTokenPending = null
@@ -341,7 +342,7 @@ fun LoginScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = AppColors.PrimaryOrange),
                 shape = RoundedCornerShape(25.dp),
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(0.5f)
                     .height(50.dp)
             ) {
                 Text(

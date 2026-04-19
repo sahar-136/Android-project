@@ -74,7 +74,7 @@ fun RegistrationScreen(
     }
 
     // Google Sign-In Manager
-    // ✅ IMPORTANT CHANGE:
+    // IMPORTANT CHANGE:
     // - Do NOT open username dialog immediately.
     // - First try loginWithGoogle(token, null).
     val googleSignInManager = rememberGoogleSignInManager(
@@ -88,7 +88,7 @@ fun RegistrationScreen(
             googleIdTokenPending = idToken
             resetGoogleDialogState()
 
-            // ✅ Try sign-in first WITHOUT username.
+            //  Try sign-in first WITHOUT username.
             viewModel.loginWithGoogle(idToken, username = null)
         },
         onError = { msg ->
@@ -107,7 +107,7 @@ fun RegistrationScreen(
         googleSignInManager.setActivityResultLauncher(launcher)
     }
 
-    // ✅ If repository says username is required, open dialog (first-time user only)
+    // If repository says username is required, open dialog (first-time user only)
     LaunchedEffect(googleLoginState) {
         val msg = (googleLoginState as? Resource.Error)?.message.orEmpty()
         if (msg.contains("Username is required", ignoreCase = true)) {
@@ -137,7 +137,7 @@ fun RegistrationScreen(
                             googleUsername = newValue
                             usernameError = null
 
-                            // ✅ Real-time username check (debounced)
+                            // Real-time username check (debounced)
                             usernameCheckJob?.cancel()
                             usernameCheckJob = scope.launch {
                                 delay(350)
@@ -501,7 +501,7 @@ fun RegistrationScreen(
                 ),
                 shape = RoundedCornerShape(25.dp),
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(0.5f)
                     .height(50.dp)
             ) {
                 Text(

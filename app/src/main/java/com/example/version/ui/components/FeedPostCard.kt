@@ -1,6 +1,7 @@
 package com.example.version.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,183 +20,209 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.version.models.Post
+import com.example.version.navigation.Routes
+import com.example.version.ui.theme.AppColors
+import com.example.version.viewmodel.FeedViewModel
 import coil3.compose.AsyncImage
+import com.google.firebase.Timestamp
+
+fun formatTimestamp(timestamp: Timestamp?): String {
+    if (timestamp == null) return "just now"
+
+    val uploadTime = timestamp.toDate().time
+    val currentTime = System.currentTimeMillis()
+    val diffMillis = currentTime - uploadTime
+
+    return when {
+        diffMillis < 60000 -> "just now"
+        diffMillis < 3600000 -> "${diffMillis / 60000} min ago"
+        diffMillis < 86400000 -> "${diffMillis / 3600000} h ago"
+        diffMillis < 604800000 -> "${diffMillis / 86400000} d ago"
+        else -> "${diffMillis / 604800000} w ago"
+    }
+}
 
 @Composable
 fun FeedPostCard(
     post: Post,
+    feedViewModel: FeedViewModel,
+    navController: NavController,
     modifier: Modifier = Modifier
 ) {
-    val primaryOrange = Color(0xFFFF8C00)        // Orange for interactions
-    val backgroundWhite = Color(0xFFFFFFFF)      // White background
-    val blackText = Color(0xFF333333)            // Black username
-    val grayText = Color(0xFF666666)             // Gray caption
-    val borderGray = Color(0xFFF0F0F0)           // Subtle border
 
-    var isLiked by remember { mutableStateOf(false) }
-    var likeCount by remember { mutableStateOf(42) } // Mock like count
+    // ❤️ LIKE STATE (correct hai - isko change nahi karna)
+    val isLiked by remember(feedViewModel.likeStatus) {
+        derivedStateOf { feedViewModel.isPostLiked(post.postId) }
+    }
+
+    val likeCount by remember(feedViewModel.likeCounts) {
+        derivedStateOf { feedViewModel.getLikeCount(post.postId) }
+    }
+
+    // ❌ OLD CODE (REMOVE KIYA):
+    // val commentCount by remember(feedViewModel.commentCounts) {
+    //     derivedStateOf { feedViewModel.getCommentCount(post.postId) }
+    // }
+
+    // ✅ FIX:
+    // Comment count ab direct "post.commentsCount" se ayega
+    // kyun ke Firestore snapshot listener already latest data bhej raha hai
 
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 6.dp),
         colors = CardDefaults.cardColors(
-            containerColor = backgroundWhite
+            containerColor = AppColors.BackgroundWhite
         ),
         elevation = CardDefaults.cardElevation(2.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            // 👤 USER HEADER
+
+        Column(modifier = Modifier.padding(12.dp)) {
+
+            // USER HEADER
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 12.dp)
             ) {
-                // Profile Picture Placeholder
+
                 Box(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(borderGray),
+                        .background(AppColors.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = post.userName.take(1).uppercase(),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = primaryOrange
+                        color = AppColors.PrimaryOrange
                     )
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column {
-                    // BLACK USERNAME
                     Text(
                         text = post.userName,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = blackText
+                        color = AppColors.BlackText
                     )
                     Text(
-                        text = "1 hrs ago",
+                        text = formatTimestamp(post.uploadTimestamp),
                         fontSize = 12.sp,
-                        color = grayText
+                        color = AppColors.TextGray
                     )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // More options (three dots)
-                IconButton(
-                    onClick = { /* Options menu */ },
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Text(
-                        "⋮",
-                        fontSize = 16.sp,
-                        color = grayText
-                    )
+                IconButton(onClick = { }) {
+                    Text("⋮", fontSize = 16.sp, color = AppColors.TextGray)
                 }
             }
 
-            // 📷 POST IMAGE
+            // IMAGE
             AsyncImage(
                 model = post.photoUrl,
-                contentDescription = "User's uploaded photo",
+                contentDescription = "Post Image",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(250.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        if (post.postId.isNotEmpty()) {
+                            navController.navigate(Routes.photoDetails(post.postId))
+                        }
+                    },
                 contentScale = ContentScale.Crop
             )
 
-            //  CAPTION (if exists)
+            // CAPTION
             if (post.caption.isNotBlank()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = post.caption,
                     fontSize = 14.sp,
-                    color = grayText,
-                    lineHeight = 20.sp
+                    color = AppColors.TextGray
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ❤️ LIKE & COMMENT ICONS ROW
+            // ACTION ROW
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Like Button
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+
+                // ❤️ LIKE BUTTON
+                Row(verticalAlignment = Alignment.CenterVertically) {
+
                     IconButton(
                         onClick = {
-                            isLiked = !isLiked
-                            likeCount = if (isLiked) likeCount + 1 else likeCount - 1
-                        },
-                        modifier = Modifier.size(32.dp)
+                            feedViewModel.togglePostLike(post.postId)
+                        }
                     ) {
                         Icon(
-                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            imageVector = if (isLiked)
+                                Icons.Filled.Favorite
+                            else
+                                Icons.Filled.FavoriteBorder,
                             contentDescription = "Like",
-                            tint = if (isLiked) Color.Red else grayText,
-                            modifier = Modifier.size(20.dp)
+                            tint = if (isLiked) Color.Red else AppColors.TextGray
                         )
                     }
+
                     Text(
                         text = "$likeCount",
                         fontSize = 14.sp,
-                        color = grayText,
-                        fontWeight = FontWeight.Medium
+                        color = AppColors.TextGray
                     )
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // Comment Button
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                // 💬 COMMENT BUTTON (FIXED)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+
                     IconButton(
-                        onClick = { /* Comment action */ },
-                        modifier = Modifier.size(32.dp)
+                        onClick = {
+                            if (post.postId.isNotEmpty()) {
+                                navController.navigate(Routes.comments(post.postId))
+                            }
+                        }
                     ) {
                         Icon(
                             imageVector = Icons.Filled.ChatBubbleOutline,
                             contentDescription = "Comment",
-                            tint = grayText,
-                            modifier = Modifier.size(20.dp)
+                            tint = AppColors.TextGray
                         )
                     }
+
                     Text(
-                        text = "12",
+                        // ✅ FINAL FIX: Direct Firestore value (always correct & updated)
+                        text = "${post.commentsCount}",
                         fontSize = 14.sp,
-                        color = grayText,
-                        fontWeight = FontWeight.Medium
+                        color = AppColors.TextGray
                     )
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Share Button (optional)
-                IconButton(
-                    onClick = { /* Share action */ },
-                    modifier = Modifier.size(32.dp)
-                ) {
+                // SHARE
+                IconButton(onClick = { }) {
                     Icon(
                         imageVector = Icons.Outlined.Share,
                         contentDescription = "Share",
-                        tint = grayText,
-                        modifier = Modifier.size(18.dp)
+                        tint = AppColors.TextGray
                     )
                 }
             }
