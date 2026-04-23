@@ -21,10 +21,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.version.models.User
-import com.example.version.models.Post
 import com.example.version.ui.theme.AppColors
 import com.example.version.util.Resource
 import com.example.version.viewmodel.ProfileViewModel
+import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.foundation.lazy.items
+import com.example.version.models.Post
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,33 +34,33 @@ fun ProfileScreen(
     navController: NavController,
     userId: String,
     profileViewModel: ProfileViewModel = hiltViewModel(),
-    onEditProfile: (() -> Unit)? = null
+    onEditProfile: () -> Unit
 ) {
     val userState by profileViewModel.userState.collectAsState()
     val posts by profileViewModel.userPosts.collectAsState()
 
-    LaunchedEffect(Unit) {
-        profileViewModel.loadCurrentUser()
-    }
+    val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid.orEmpty() }
+    val isOwnProfile = currentUserId.isNotBlank() && currentUserId == userId
 
-        LaunchedEffect(key1 = userId) {
+    LaunchedEffect(userId) {
+        if (userId.isNotBlank()) {
             profileViewModel.loadUserProfile(userId)
         }
-
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        "Profile",
+                        if (isOwnProfile) "You" else "Profile",
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
                         color = AppColors.BlackText
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigate("home") }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             Icons.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -72,34 +74,32 @@ fun ProfileScreen(
             )
         }
     ) { paddingValues ->
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(AppColors.BackgroundWhite)
                 .padding(paddingValues)
         ) {
-            when (userState) {
+            when (val state = userState) {
                 is Resource.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = AppColors.PrimaryOrange)
                     }
                 }
+
                 is Resource.Error -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            (userState as Resource.Error).message ?: "Could not load profile",
+                            state.message ?: "Could not load profile",
                             color = AppColors.ErrorRed
                         )
                     }
                 }
+
                 is Resource.Success -> {
-                    val user = (userState as Resource.Success<User>).data
+                    val user: User = state.data ?: User()
+
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 32.dp)
@@ -128,28 +128,34 @@ fun ProfileScreen(
                                         )
                                     } else {
                                         Text(
-                                            text = user.name.take(1).uppercase(),
+                                            text = user.name.take(1).ifBlank { "?" }.uppercase(),
                                             fontSize = 36.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = AppColors.PrimaryOrange
                                         )
                                     }
                                 }
+
                                 Spacer(modifier = Modifier.height(12.dp))
+
                                 Text(
                                     "@${user.username}",
                                     color = AppColors.PrimaryOrange,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 17.sp
                                 )
+
                                 Spacer(modifier = Modifier.height(2.dp))
+
                                 Text(
                                     user.name,
                                     color = AppColors.BlackText,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 22.sp
                                 )
+
                                 Spacer(modifier = Modifier.height(3.dp))
+
                                 if (user.bio.isNotBlank()) {
                                     Text(
                                         user.bio,
@@ -159,40 +165,50 @@ fun ProfileScreen(
                                         lineHeight = 18.sp
                                     )
                                 }
+
                                 Spacer(modifier = Modifier.height(6.dp))
+
                                 Text(
                                     "📷 ${posts.size} Posts",
                                     color = AppColors.BlackText,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
                                 )
+
                                 Spacer(modifier = Modifier.height(18.dp))
-                                Button(
-                                    onClick = { onEditProfile?.invoke() },
-                                    modifier = Modifier
-                                        .height(48.dp)
-                                        .fillMaxWidth(0.8f),
-                                    shape = RoundedCornerShape(30.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = AppColors.PrimaryOrange
-                                    ),
-                                    border = BorderStroke(2.dp, AppColors.PrimaryOrange)
-                                ) {
-                                    Text("Edit Profile", fontWeight = FontWeight.Bold)
+
+                                // ✅ Edit button ONLY for own profile
+                                if (isOwnProfile) {
+                                    Button(
+                                        onClick = onEditProfile,
+                                        modifier = Modifier
+                                            .height(48.dp)
+                                            .fillMaxWidth(0.8f),
+                                        shape = RoundedCornerShape(30.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = AppColors.PrimaryOrange
+                                        ),
+                                        border = BorderStroke(2.dp, AppColors.PrimaryOrange)
+                                    ) {
+                                        Text("Edit Profile", fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Spacer(modifier = Modifier.height(18.dp))
                                 }
-                                Spacer(modifier = Modifier.height(18.dp))
                             }
                         }
+
                         item {
                             Text(
-                                "My Posts",
+                                if (isOwnProfile) "My Posts" else "Posts",
                                 color = AppColors.BlackText,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 18.sp,
                                 modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
-                        items(posts) { post ->
+
+                        items(posts) { post: Post ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -206,7 +222,9 @@ fun ProfileScreen(
                                         fontSize = 16.sp,
                                         color = AppColors.BlackText
                                     )
+
                                     Spacer(modifier = Modifier.height(6.dp))
+
                                     if (post.photoUrl.isNotBlank()) {
                                         AsyncImage(
                                             model = post.photoUrl,
@@ -217,7 +235,9 @@ fun ProfileScreen(
                                                 .clip(RoundedCornerShape(10.dp))
                                         )
                                     }
+
                                     Spacer(modifier = Modifier.height(4.dp))
+
                                     Text(
                                         text = post.uploadTimestamp.toDate().toString(),
                                         fontSize = 12.sp,
@@ -228,7 +248,8 @@ fun ProfileScreen(
                         }
                     }
                 }
-                else -> {}
+
+                else -> Unit
             }
         }
     }

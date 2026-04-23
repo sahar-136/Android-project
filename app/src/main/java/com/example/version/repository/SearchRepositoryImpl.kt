@@ -8,17 +8,25 @@ import javax.inject.Inject
 class SearchRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : SearchRepository {
-    override suspend fun searchUsers(query: String): List<User> {
-        // Basic example: search by name or username (adjust as needed!)
-        val result = firestore.collection("users")
+
+    override suspend fun searchUsers(query: String, limit: Long): List<User> {
+        val q = query.trim()
+        if (q.isBlank()) return emptyList()
+
+        val snapshot = firestore.collection("users")
+            .limit(500)
             .get()
             .await()
-        return result.documents.mapNotNull { doc ->
-            val user = doc.toObject(User::class.java)
-            if (
-                user != null &&
-                (user.name.contains(query, ignoreCase = true) || user.username.contains(query, ignoreCase = true))
-            ) user else null
+
+        val lower = q.lowercase()
+
+        return snapshot.documents.mapNotNull { doc ->
+            val user = doc.toObject(User::class.java) ?: return@mapNotNull null
+
+            val usernameMatch = user.username.lowercase().contains(lower)
+            val nameMatch = user.name.lowercase().contains(lower)
+
+            if (usernameMatch || nameMatch) user else null
         }
     }
 }

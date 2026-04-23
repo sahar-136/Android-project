@@ -4,20 +4,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.version.models.Post
 import com.example.version.ui.components.FeedPostCard
@@ -25,7 +24,6 @@ import com.example.version.ui.theme.AppColors
 import com.example.version.util.Resource
 import com.example.version.viewmodel.AuthViewModel
 import com.example.version.viewmodel.FeedViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,99 +32,81 @@ fun HomeScreen(
     feedViewModel: FeedViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
-
     val feedState by feedViewModel.feedPosts.collectAsState()
+    val trendingState by feedViewModel.trendingPosts.collectAsState()
+
     var showLogoutDialog by remember { mutableStateOf(false) }
-    var selectedTab by rememberSaveable { mutableStateOf(0) }
+    var selectedTabIndex by rememberSaveable { mutableStateOf(0) } // 0=Feed, 1=Trending
+
+    // load trending when user opens Trending tab first time
+    LaunchedEffect(selectedTabIndex) {
+        if (selectedTabIndex == 1) {
+            feedViewModel.loadTrendingOnce()
+        }
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "SnapQuest",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AppColors.BlackText
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(Icons.Filled.Menu, contentDescription = null)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Filled.Notifications, contentDescription = null)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AppColors.PrimaryOrange,
-                    titleContentColor = AppColors.BlackText
-                )
-            )
-        },
-
-        bottomBar = {
-            NavigationBar(containerColor = AppColors.BackgroundWhite) {
-
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = {
-                        selectedTab = 0
-                        navController.navigate("home")
+            Column {
+                TopAppBar(
+                    title = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "SnapQuest",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AppColors.BlackText
+                            )
+                        }
                     },
-                    icon = { Icon(Icons.Filled.Home, null) },
-                    label = { Text("Home") }
+                    navigationIcon = {
+                        IconButton(onClick = { showLogoutDialog = true }) {
+                            Icon(Icons.Filled.Menu, contentDescription = null)
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { }) {
+                            Icon(Icons.Filled.Notifications, contentDescription = null)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = AppColors.PrimaryOrange,
+                        titleContentColor = AppColors.BlackText
+                    )
                 )
 
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = {
-                        selectedTab = 1
-                        navController.navigate("search")
-                    },
-                    icon = { Icon(Icons.Filled.Search, null) },
-                    label = { Text("Search") }
-                )
-
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = {
-                        selectedTab = 2
-                        navController.navigate("upload")
-                    },
-                    icon = { Icon(Icons.Filled.Add, null) },
-                    label = { Text("Upload") }
-                )
-
-                NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = {
-                        selectedTab = 3
-                        navController.navigate("profile")
-                    },
-                    icon = { Icon(Icons.Filled.Person, null) },
-                    label = { Text("Profile") }
-                )
+                SecondaryTabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = AppColors.BackgroundWhite,
+                    contentColor = AppColors.PrimaryOrange
+                ) {
+                    Tab(
+                        selected = selectedTabIndex == 0,
+                        onClick = { selectedTabIndex = 0 },
+                        text = { Text("Feed") }
+                    )
+                    Tab(
+                        selected = selectedTabIndex == 1,
+                        onClick = { selectedTabIndex = 1 },
+                        text = { Text("Trending") }
+                    )
+                }
             }
-        }
+        },
+        containerColor = AppColors.BackgroundWhite
     ) { paddingValues ->
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(AppColors.BackgroundWhite)
                 .padding(paddingValues)
         ) {
+            val state = if (selectedTabIndex == 0) feedState else trendingState
 
-            when (feedState) {
-
+            when (state) {
                 is Resource.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = AppColors.PrimaryOrange)
@@ -136,24 +116,31 @@ fun HomeScreen(
                 is Resource.Error -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            (feedState as Resource.Error).message ?: "Error",
+                            text = state.message ?: "Something went wrong",
                             color = AppColors.ErrorRed
                         )
                     }
                 }
 
                 is Resource.Success<*> -> {
-
-                    val posts =
-                        (feedState as Resource.Success<List<Post>>).data ?: emptyList()
+                    val posts = (state as Resource.Success<List<Post>>).data ?: emptyList()
 
                     if (posts.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("No posts yet", textAlign = TextAlign.Center)
+                            Text(
+                                text = if (selectedTabIndex == 0) "No posts yet" else "No trending posts yet",
+                                textAlign = TextAlign.Center
+                            )
                         }
                     } else {
-                        LazyColumn {
-                            items(posts) { post ->
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 6.dp)
+                        ) {
+                            items(
+                                items = posts,
+                                key = { it.id }
+                            ) { post ->
                                 FeedPostCard(
                                     post = post,
                                     feedViewModel = feedViewModel,
@@ -163,8 +150,6 @@ fun HomeScreen(
                         }
                     }
                 }
-
-                else -> {}
             }
         }
     }
@@ -175,19 +160,15 @@ fun HomeScreen(
             confirmButton = {
                 Button(onClick = {
                     authViewModel.logout()
+                    showLogoutDialog = false
                     navController.navigate("login") { popUpTo(0) }
-                }) {
-                    Text("Logout")
-                }
+                }) { Text("Logout") }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancel") }
             },
             title = { Text("Logout?") },
             text = { Text("Are you sure?") }
         )
     }
 }
-

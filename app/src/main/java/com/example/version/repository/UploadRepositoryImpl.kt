@@ -10,6 +10,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+import kotlin.collections.emptyList
+
 
 class UploadRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
@@ -23,50 +25,69 @@ class UploadRepositoryImpl @Inject constructor(
         caption: String?
     ): Resource<Post> {
         try {
-            // 1. Get current user's profile (for name, profilePhoto, and last upload)
+            // Get user profile
             val userDoc = firestore.collection("users").document(userId).get().await()
             val user = userDoc.toObject(User::class.java)
                 ?: return Resource.Error("User not found")
 
-            // 2. Check if user already uploaded today
+            // Check upload limit
             if (!user.canUploadToday()) {
                 return Resource.Error("You can only upload one photo per day!")
             }
 
-            // 3. Upload file to Firebase Storage
+            // Upload photo to storage
             val fileName = "${userId}_${System.currentTimeMillis()}.jpg"
             val photoRef = storage.reference.child("postImages/$userId/$fileName")
-           // photoRef.putFile(fileUri).await()
-            val uploadTask=photoRef.putFile(fileUri).await()
-            // 4. Get photo URL
+            photoRef.putFile(fileUri).await()
             val downloadUrl = photoRef.downloadUrl.await().toString()
 
-            // 5. Create Post object
-            val timeNow = Timestamp.now()
+            // Create post document
+            val postDoc = firestore.collection("posts").document()
+
+            // ✅ CORRECT: Don't include postId - @DocumentId will auto-populate
+            val postMap = mapOf(
+                "userId" to userId,
+                "userName" to user.name,
+                "userProfileUrl" to user.profileImageUrl,
+                "photoUrl" to downloadUrl,
+                "caption" to (caption ?: ""),
+                "uploadTimestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+                "likesCount" to 0,
+                "commentsCount" to 0,
+                "isTrending" to false,
+                "deleted" to false,
+                "location" to "",
+                "tags" to emptyList<String>()
+            )
+            postDoc.set(postMap).await()
+
+            // Update user stats
+            firestore.collection("users").document(userId)
+                .update(
+                    mapOf(
+                        "lastUploadDate" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+                        "totalPhotos" to (user.totalPhotos + 1)
+                    )
+                ).await()
+
+            // ✅ CORRECT: Return Post with id (not postId)
             val post = Post(
+                id = postDoc.id,  // ← id, not postId
                 userId = userId,
                 userName = user.name,
                 userProfileUrl = user.profileImageUrl,
                 photoUrl = downloadUrl,
                 caption = caption ?: "",
-                uploadTimestamp = timeNow
+                uploadTimestamp = Timestamp.now(),
+                likesCount = 0,
+                commentsCount = 0,
+                isTrending = false,
+                deleted = false,
+                location = "",
+                tags = emptyList()
             )
 
-            // 6. Write to Firestore ("posts" collection)
-            val postDoc = firestore.collection("posts").document()
-            val finalPost = post.copy(postId = postDoc.id)
-            postDoc.set(finalPost).await()
-
-            // 7. Update user's lastUploadDate & totalPhotos
-            firestore.collection("users").document(userId)
-                .update(
-                    mapOf(
-                        "lastUploadDate" to timeNow,
-                        "totalPhotos" to (user.totalPhotos + 1)
-                    )
-                ).await()
-
-            return Resource.Success(finalPost)
+            return Resource.Success(post)
         } catch (e: Exception) {
             return Resource.Error(e.message ?: "Failed to upload photo")
         }

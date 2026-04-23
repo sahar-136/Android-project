@@ -5,7 +5,7 @@ import com.google.firebase.firestore.DocumentId
 
 data class Post(
     @DocumentId
-    val postId: String = "",
+    val id: String = "",  // ✅ lowercase 'i'
     val userId: String = "",
     val userName: String = "",
     val userProfileUrl: String = "",
@@ -15,13 +15,12 @@ data class Post(
     val likesCount: Int = 0,
     val commentsCount: Int = 0,
     val isTrending: Boolean = false,
-    val isDeleted: Boolean = false,
-    val location: String = "", // optional
-    val tags: List<String> = emptyList() // optional for filtering/trending
+    val deleted: Boolean = false,
+    val location: String = "",
+    val tags: List<String> = emptyList()
 ) {
-    // Empty constructor for Firestore
     constructor() : this(
-        postId = "",
+        id = "",  // ✅ lowercase 'i'
         userId = "",
         userName = "",
         userProfileUrl = "",
@@ -31,16 +30,8 @@ data class Post(
         likesCount = 0,
         commentsCount = 0,
         isTrending = false,
-        isDeleted = false,
+        deleted = false,
         location = "",
         tags = emptyList()
     )
-
-    // Helper: was post uploaded today?
-    fun isUploadedToday(): Boolean {
-        val today = System.currentTimeMillis()
-        val upload = uploadTimestamp.toDate().time
-        val oneDayInMillis = 24 * 60 * 60 * 1000
-        return (today - upload) < oneDayInMillis
-    }
 }

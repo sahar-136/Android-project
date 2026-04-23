@@ -52,23 +52,14 @@ fun FeedPostCard(
     modifier: Modifier = Modifier
 ) {
 
-    // ❤️ LIKE STATE (correct hai - isko change nahi karna)
+    // ❤️ LIKE STATE
     val isLiked by remember(feedViewModel.likeStatus) {
-        derivedStateOf { feedViewModel.isPostLiked(post.postId) }
+        derivedStateOf { feedViewModel.isPostLiked(post.id) }  // ✅ postId → id
     }
 
     val likeCount by remember(feedViewModel.likeCounts) {
-        derivedStateOf { feedViewModel.getLikeCount(post.postId) }
+        derivedStateOf { feedViewModel.getLikeCount(post.id) }  // ✅ postId → id
     }
-
-    // ❌ OLD CODE (REMOVE KIYA):
-    // val commentCount by remember(feedViewModel.commentCounts) {
-    //     derivedStateOf { feedViewModel.getCommentCount(post.postId) }
-    // }
-
-    // ✅ FIX:
-    // Comment count ab direct "post.commentsCount" se ayega
-    // kyun ke Firestore snapshot listener already latest data bhej raha hai
 
     Card(
         modifier = modifier
@@ -138,8 +129,8 @@ fun FeedPostCard(
                     .height(250.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
-                        if (post.postId.isNotEmpty()) {
-                            navController.navigate(Routes.photoDetails(post.postId))
+                        if (post.id.isNotEmpty()) {  // ✅ postId → id
+                            navController.navigate(Routes.photoDetails(post.id))  // ✅ postId → id
                         }
                     },
                 contentScale = ContentScale.Crop
@@ -168,7 +159,7 @@ fun FeedPostCard(
 
                     IconButton(
                         onClick = {
-                            feedViewModel.togglePostLike(post.postId)
+                            feedViewModel.togglePostLike(post.id)  // ✅ postId → id
                         }
                     ) {
                         Icon(
@@ -190,13 +181,13 @@ fun FeedPostCard(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // 💬 COMMENT BUTTON (FIXED)
+                // 💬 COMMENT BUTTON
                 Row(verticalAlignment = Alignment.CenterVertically) {
 
                     IconButton(
                         onClick = {
-                            if (post.postId.isNotEmpty()) {
-                                navController.navigate(Routes.comments(post.postId))
+                            if (post.id.isNotEmpty()) {  // ✅ postId → id
+                                navController.navigate(Routes.comments(post.id))  // ✅ postId → id
                             }
                         }
                     ) {
@@ -208,7 +199,6 @@ fun FeedPostCard(
                     }
 
                     Text(
-                        // ✅ FINAL FIX: Direct Firestore value (always correct & updated)
                         text = "${post.commentsCount}",
                         fontSize = 14.sp,
                         color = AppColors.TextGray

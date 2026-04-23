@@ -2,8 +2,8 @@ package com.example.version.repository
 
 import com.example.version.models.Comment
 import com.example.version.util.Resource
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -23,6 +23,7 @@ class CommentRepositoryImpl @Inject constructor(
         return try {
             val postRef = firestore.collection("posts").document(postId)
             val commentRef = postRef.collection("comments").document()
+
             val comment = Comment(
                 postId = postId,
                 userId = userId,
@@ -31,11 +32,10 @@ class CommentRepositoryImpl @Inject constructor(
                 commentDatetime = com.google.firebase.Timestamp.now(),
                 likeCount = 0
             )
+
             commentRef.set(comment).await()
-            postRef.update(
-                "commentsCount",
-                FieldValue.increment(1)
-            ).await()
+            postRef.update("commentsCount", FieldValue.increment(1)).await()
+
             Resource.Success(true)
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Failed to add comment")
@@ -44,77 +44,59 @@ class CommentRepositoryImpl @Inject constructor(
 
     override suspend fun getCommentsByPostId(postId: String): Flow<Resource<List<Comment>>> = callbackFlow {
         trySend(Resource.Loading)
+
         val query = firestore
             .collection("posts")
             .document(postId)
             .collection("comments")
+
         val listener = query.addSnapshotListener { snapshot, error ->
             if (error != null) {
                 trySend(Resource.Error(error.message ?: "Failed to fetch comments"))
                 return@addSnapshotListener
             }
-            val comments = snapshot?.toObjects(Comment::class.java) ?: emptyList()
-            val sortedComments = comments.sortedByDescending {
-                it.commentDatetime?.toDate()?.time ?: 0
-            }
-            trySend(Resource.Success(sortedComments))
+
+            val comments = snapshot?.toObjects(Comment::class.java).orEmpty()
+            val sorted = comments.sortedByDescending { it.commentDatetime?.toDate()?.time ?: 0L }
+            trySend(Resource.Success(sorted))
         }
-        // Only the awaitClose block here, last line!
+
         awaitClose { listener.remove() }
     }
 
-    override suspend fun deleteComment(
-        postId: String,
-        commentId: String
-    ): Resource<Boolean> {
+    override suspend fun deleteComment(postId: String, commentId: String): Resource<Boolean> {
         return try {
             val postRef = firestore.collection("posts").document(postId)
-            val commentRef = postRef.collection("comments").document(commentId)
-            commentRef.delete().await()
-            postRef.update(
-                "commentsCount",
-                FieldValue.increment(-1)
-            ).await()
+            postRef.collection("comments").document(commentId).delete().await()
+            postRef.update("commentsCount", FieldValue.increment(-1)).await()
             Resource.Success(true)
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Failed to delete comment")
         }
     }
 
-    override suspend fun likeComment(
-        postId: String,
-        commentId: String
-    ): Resource<Boolean> {
+    override suspend fun likeComment(postId: String, commentId: String): Resource<Boolean> {
         return try {
-            val commentRef = firestore
-                .collection("posts")
+            firestore.collection("posts")
                 .document(postId)
                 .collection("comments")
                 .document(commentId)
-            commentRef.update(
-                "likeCount",
-                FieldValue.increment(1)
-            ).await()
+                .update("likeCount", FieldValue.increment(1))
+                .await()
             Resource.Success(true)
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Failed to like comment")
         }
     }
 
-    override suspend fun unlikeComment(
-        postId: String,
-        commentId: String
-    ): Resource<Boolean> {
+    override suspend fun unlikeComment(postId: String, commentId: String): Resource<Boolean> {
         return try {
-            val commentRef = firestore
-                .collection("posts")
+            firestore.collection("posts")
                 .document(postId)
                 .collection("comments")
                 .document(commentId)
-            commentRef.update(
-                "likeCount",
-                FieldValue.increment(-1)
-            ).await()
+                .update("likeCount", FieldValue.increment(-1))
+                .await()
             Resource.Success(true)
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Failed to unlike comment")

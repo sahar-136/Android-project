@@ -20,139 +20,96 @@ class FeedViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    // ============================================
-    // EXISTING: Feed posts (Real-time)
-    // ============================================
+    // Feed posts
     private val _feedPosts = MutableStateFlow<Resource<List<Post>>>(Resource.Loading)
     val feedPosts: StateFlow<Resource<List<Post>>> = _feedPosts.asStateFlow()
 
-    // ============================================
-    // EXISTING: Comment counts map (post ID -> count)
-    // ============================================
-    private val _commentCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val commentCounts: StateFlow<Map<String, Int>> = _commentCounts.asStateFlow()
+    // Trending posts
+    private val _trendingPosts = MutableStateFlow<Resource<List<Post>>>(Resource.Loading)
+    val trendingPosts: StateFlow<Resource<List<Post>>> = _trendingPosts.asStateFlow()
+    private var trendingStarted = false
 
-    // ============================================
-    // NEW: Like status map (post ID -> is liked)
-    // ============================================
+    // Like status map (id -> isLiked)  // ✅ postId → id
     private val _likeStatus = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val likeStatus: StateFlow<Map<String, Boolean>> = _likeStatus.asStateFlow()
 
-    // ============================================
-    // NEW: Like counts map (post ID -> count)
-    // ============================================
+    // Like counts map (id -> count)  // ✅ postId → id
     private val _likeCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val likeCounts: StateFlow<Map<String, Int>> = _likeCounts.asStateFlow()
 
-    // ============================================
-    // INIT: Load feed posts
-    // ============================================
     init {
         loadFeed()
     }
 
-    // ============================================
-    // LOAD FEED POSTS (Real-time)
-    // ============================================
+    // ✅ Method to refresh feed
+    fun refreshFeed() {
+        loadFeed()
+    }
+
     private fun loadFeed() {
         viewModelScope.launch {
-            feedRepository.getFeedPosts()
-                .collect { result ->
-                    _feedPosts.value = result
+            feedRepository.getFeedPosts().collect { result ->
+                _feedPosts.value = result
 
-                    // When posts load, fetch data for each post
-                    if (result is Resource.Success) {
-                        result.data.forEach { post ->
-                            fetchPostCommentsCount(post.postId)
-                            fetchPostLikeStatus(post.postId)
-                            fetchPostLikesCount(post.postId)
-                        }
+                if (result is Resource.Success) {
+                    result.data.forEach { post ->
+                        fetchPostLikeStatus(post.id)  // ✅ postId → id
+                        fetchPostLikesCount(post.id)  // ✅ postId → id
                     }
                 }
-        }
-    }
-
-    // ============================================
-    // Fetch comments count for single post
-    // ============================================
-    private fun fetchPostCommentsCount(postId: String) {
-        viewModelScope.launch {
-            feedRepository.getPostCommentsCount(postId)
-                .collect { count ->
-                    Log.d("count", "$count")
-                    _commentCounts.update { currentMap ->
-                        currentMap + (postId to count)
-                    }
-                }
-        }
-    }
-
-    // ============================================
-    // NEW: Fetch like status for single post
-    // ============================================
-    private fun fetchPostLikeStatus(postId: String) {
-        val userId = authRepository.getCurrentUserId() ?: return
-
-        viewModelScope.launch {
-            val isLiked = likeRepository.isPostLikedByUser(postId, userId)
-            _likeStatus.update { currentMap ->
-                currentMap + (postId to isLiked)
             }
         }
     }
 
-    // ============================================
-    // NEW: Fetch likes count for single post (Real-time)
-    // ============================================
-    private fun fetchPostLikesCount(postId: String) {
+    // Call when Trending tab opens first time
+    fun loadTrendingOnce() {
+        if (trendingStarted) return
+        trendingStarted = true
+
         viewModelScope.launch {
-            likeRepository.getPostLikesCount(postId)
-                .collect { count ->
-                    _likeCounts.update { currentMap ->
-                        currentMap + (postId to count)
+            feedRepository.getTrendingPosts().collect { result ->
+                _trendingPosts.value = result
+
+                if (result is Resource.Success) {
+                    result.data.forEach { post ->
+                        fetchPostLikeStatus(post.id)  // ✅ postId → id
+                        fetchPostLikesCount(post.id)  // ✅ postId → id
                     }
                 }
+            }
         }
     }
 
-    // ============================================
-    // NEW: Toggle like for a post
-    // ============================================
+    private fun fetchPostLikeStatus(postId: String) {
+        val userId = authRepository.getCurrentUserId() ?: return
+        viewModelScope.launch {
+            val isLiked = likeRepository.isPostLikedByUser(postId, userId)
+            _likeStatus.update { it + (postId to isLiked) }
+        }
+    }
+
+    private fun fetchPostLikesCount(postId: String) {
+        viewModelScope.launch {
+            likeRepository.getPostLikesCount(postId).collect { count ->
+                _likeCounts.update { it + (postId to count) }
+            }
+        }
+    }
+
     fun togglePostLike(postId: String) {
         val userId = authRepository.getCurrentUserId() ?: return
 
         viewModelScope.launch {
             val result = likeRepository.togglePostLike(postId, userId)
-
             if (result is Resource.Success) {
                 val newStatus = result.data
-                _likeStatus.update { currentMap ->
-                    currentMap + (postId to newStatus)
-                }
+                _likeStatus.update { it + (postId to newStatus) }
                 fetchPostLikesCount(postId)
                 Log.d("FeedVM", "Post like toggled: $postId - $newStatus")
             }
         }
     }
 
-    // ============================================
-    // Get comment count for specific post
-    // ============================================
-    fun getCommentCount(postId: String): Int {
-        return _commentCounts.value[postId] ?: 0
-    }
-
-    // ============================================
-    // NEW: Get like count for specific post
-    // ============================================
-    fun getLikeCount(postId: String): Int {
-        return _likeCounts.value[postId] ?: 0
-    }
-
-    // ============================================
-    // NEW: Get like status for specific post
-    // ============================================
-    fun isPostLiked(postId: String): Boolean {
-        return _likeStatus.value[postId] ?: false
-    }
+    fun getLikeCount(postId: String): Int = _likeCounts.value[postId] ?: 0
+    fun isPostLiked(postId: String): Boolean = _likeStatus.value[postId] ?: false
 }
