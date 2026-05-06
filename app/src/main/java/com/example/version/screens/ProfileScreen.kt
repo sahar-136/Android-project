@@ -2,6 +2,7 @@ package com.example.version.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,12 +23,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.version.models.User
+import com.example.version.models.Post
 import com.example.version.ui.theme.AppColors
 import com.example.version.util.Resource
 import com.example.version.viewmodel.ProfileViewModel
+import com.example.version.viewmodel.DeletePostViewModel
 import com.google.firebase.auth.FirebaseAuth
-import androidx.compose.foundation.lazy.items
-import com.example.version.models.Post
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,17 +36,42 @@ fun ProfileScreen(
     navController: NavController,
     userId: String,
     profileViewModel: ProfileViewModel = hiltViewModel(),
+    deletePostViewModel: DeletePostViewModel = hiltViewModel(),
     onEditProfile: () -> Unit
 ) {
     val userState by profileViewModel.userState.collectAsState()
     val posts by profileViewModel.userPosts.collectAsState()
+    val deleteState by deletePostViewModel.deleteState.collectAsState()
 
     val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid.orEmpty() }
     val isOwnProfile = currentUserId.isNotBlank() && currentUserId == userId
 
+    // Delete state tracking
+    var selectedPostForDelete by remember { mutableStateOf<Post?>(null) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var updatedPosts by remember { mutableStateOf(posts) }
+
     LaunchedEffect(userId) {
         if (userId.isNotBlank()) {
             profileViewModel.loadUserProfile(userId)
+        }
+    }
+
+    // ✅ OBSERVE DELETE STATE
+    LaunchedEffect(deleteState) {
+        when (deleteState) {
+            is Resource.Success -> {
+                // Remove deleted post from list
+                updatedPosts = updatedPosts.filter { it.id != selectedPostForDelete?.id }
+                selectedPostForDelete = null
+                deletePostViewModel.resetDeleteState()
+            }
+            is Resource.Error -> {
+                // Show error
+                selectedPostForDelete = null
+                deletePostViewModel.resetDeleteState()
+            }
+            else -> {}
         }
     }
 
@@ -99,6 +126,11 @@ fun ProfileScreen(
 
                 is Resource.Success -> {
                     val user: User = state.data ?: User()
+
+                    // Update posts list when it changes
+                    LaunchedEffect(posts) {
+                        updatedPosts = posts
+                    }
 
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -169,7 +201,7 @@ fun ProfileScreen(
                                 Spacer(modifier = Modifier.height(6.dp))
 
                                 Text(
-                                    "📷 ${posts.size} Posts",
+                                    "📷 ${updatedPosts.size} Posts",
                                     color = AppColors.BlackText,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
@@ -208,11 +240,21 @@ fun ProfileScreen(
                             )
                         }
 
-                        items(posts) { post: Post ->
+                        items(updatedPosts) { post: Post ->
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                if (isOwnProfile) {
+                                                    selectedPostForDelete = post
+                                                    showDeleteConfirmation = true
+                                                }
+                                            }
+                                        )
+                                    },
                                 elevation = CardDefaults.cardElevation(2.dp)
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
@@ -252,5 +294,35 @@ fun ProfileScreen(
                 else -> Unit
             }
         }
+    }
+
+    // ✅ DELETE CONFIRMATION DIALOG
+    if (showDeleteConfirmation && selectedPostForDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Photo?") },
+            text = { Text("This photo will be deleted permanently. This cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        selectedPostForDelete?.let { post ->
+                            deletePostViewModel.deletePost(
+                                post.id,
+                                post.userId,
+                                post.photoUrl
+                            )
+                        }
+                        showDeleteConfirmation = false
+                    }
+                ) {
+                    Text("Delete", color = AppColors.ErrorRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

@@ -3,6 +3,7 @@ package com.example.version.screens
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,7 +25,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.example.version.auth.rememberGoogleSignInManager
+import com.example.version.navigation.Routes
 import com.example.version.ui.theme.AppColors
 import com.example.version.util.Resource
 import com.example.version.viewmodel.AuthViewModel
@@ -36,6 +39,7 @@ import kotlinx.coroutines.launch
 fun LoginScreen(
     onSignUpClick: () -> Unit,
     onLoginSuccess: () -> Unit = {},
+    navController: NavHostController,
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     var email by remember { mutableStateOf("") }
@@ -68,9 +72,6 @@ fun LoginScreen(
     }
 
     // Google One Tap manager
-    // IMPORTANT CHANGE:
-    // - Do NOT open username dialog immediately.
-    // - First try loginWithGoogle(token, null).
     val googleSignInManager = rememberGoogleSignInManager(
         onSignInResult = { idToken ->
             if (idToken.isNullOrBlank()) {
@@ -145,7 +146,7 @@ fun LoginScreen(
                     when (isUsernameAvailable) {
                         true -> Text("Username available", color = AppColors.SuccessGreen)
                         false -> Text("Username taken", color = AppColors.ErrorRed)
-                        else -> Text(" ", color = AppColors.TextGray) // keeps spacing stable
+                        else -> Text(" ", color = AppColors.TextGray)
                     }
 
                     if (usernameError != null) {
@@ -182,7 +183,6 @@ fun LoginScreen(
                             return@Button
                         }
 
-                        //  Now complete first-time registration with provided username
                         viewModel.loginWithGoogle(token, cleaned)
                         showUsernameDialog = false
                         googleIdTokenPending = null
@@ -212,11 +212,11 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 32.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Icon(
                 imageVector = Icons.Filled.CameraAlt,
@@ -225,7 +225,7 @@ fun LoginScreen(
                 modifier = Modifier.size(72.dp)
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Text(
                 text = "SnapQuest",
@@ -235,7 +235,7 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = "Welcome Back",
@@ -244,75 +244,90 @@ fun LoginScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email", color = AppColors.TextGray, fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Email,
-                        null,
-                        tint = AppColors.PrimaryOrange,
-                        modifier = Modifier.size(20.dp)
+            // Card containing Email and Password fields
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = AppColors.BackgroundWhite),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email", color = AppColors.TextGray, fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Email,
+                                null,
+                                tint = AppColors.PrimaryOrange,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = AppColors.LightGray,
+                            unfocusedContainerColor = AppColors.LightGray,
+                            focusedBorderColor = AppColors.PrimaryOrange,
+                            unfocusedBorderColor = AppColors.BorderGray,
+                            focusedTextColor = AppColors.BlackText,
+                            unfocusedTextColor = AppColors.BlackText,
+                            focusedLabelColor = AppColors.PrimaryOrange,
+                            unfocusedLabelColor = AppColors.TextGray
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AppColors.LightGray,
-                    unfocusedContainerColor = AppColors.LightGray,
-                    focusedBorderColor = AppColors.PrimaryOrange,
-                    unfocusedBorderColor = AppColors.BorderGray,
-                    focusedTextColor = AppColors.BlackText,
-                    unfocusedTextColor = AppColors.BlackText,
-                    focusedLabelColor = AppColors.PrimaryOrange,
-                    unfocusedLabelColor = AppColors.TextGray
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password", color = AppColors.TextGray, fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Lock,
-                        null,
-                        tint = AppColors.PrimaryOrange,
-                        modifier = Modifier.size(20.dp)
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Password", color = AppColors.TextGray, fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Lock,
+                                null,
+                                tint = AppColors.PrimaryOrange,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    null,
+                                    tint = AppColors.TextGray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = AppColors.LightGray,
+                            unfocusedContainerColor = AppColors.LightGray,
+                            focusedBorderColor = AppColors.PrimaryOrange,
+                            unfocusedBorderColor = AppColors.BorderGray,
+                            focusedTextColor = AppColors.BlackText,
+                            unfocusedTextColor = AppColors.BlackText,
+                            focusedLabelColor = AppColors.PrimaryOrange,
+                            unfocusedLabelColor = AppColors.TextGray
+                        ),
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
                     )
-                },
-                trailingIcon = {
-                    IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(
-                            if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            null,
-                            tint = AppColors.TextGray,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AppColors.LightGray,
-                    unfocusedContainerColor = AppColors.LightGray,
-                    focusedBorderColor = AppColors.PrimaryOrange,
-                    unfocusedBorderColor = AppColors.BorderGray,
-                    focusedTextColor = AppColors.BlackText,
-                    unfocusedTextColor = AppColors.BlackText,
-                    focusedLabelColor = AppColors.PrimaryOrange,
-                    unfocusedLabelColor = AppColors.TextGray
-                ),
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
-            )
+                }
+            }
 
             Row(
                 modifier = Modifier
@@ -321,7 +336,7 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(
-                    onClick = { },
+                    onClick = { navController.navigate(Routes.RESET_PASSWORD)},
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
@@ -332,7 +347,7 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Button(
                 onClick = {
@@ -382,12 +397,13 @@ fun LoginScreen(
                     )
                 }
                 is Resource.Success -> {
-                    LaunchedEffect(key1 = true) { onLoginSuccess() }
+                    Log.d("logerror", "✅ Login success - calling onLoginSuccess")
+                    onLoginSuccess()  // ✅ CALL IMMEDIATELY - NO LAUNCHEDEFFECT DELAY
                 }
                 else -> {}
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -403,7 +419,7 @@ fun LoginScreen(
                 Divider(modifier = Modifier.weight(1f), color = AppColors.BorderGray)
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Button(
                 onClick = {
@@ -482,12 +498,13 @@ fun LoginScreen(
                     }
                 }
                 is Resource.Success -> {
-                    LaunchedEffect(key1 = "googleLoginSuccess") { onLoginSuccess() }
+                    Log.d("logerror", "✅ Google login success - calling onLoginSuccess")
+                    onLoginSuccess()  // ✅ CALL IMMEDIATELY - NO LAUNCHEDEFFECT DELAY
                 }
                 else -> {}
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 horizontalArrangement = Arrangement.Center,
@@ -511,7 +528,7 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }

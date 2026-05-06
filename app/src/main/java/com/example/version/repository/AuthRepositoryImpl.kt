@@ -1,6 +1,7 @@
 package com.example.version.repository
 
 import com.example.version.models.User
+import android.util.Log
 import com.example.version.util.Resource
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -51,11 +52,13 @@ class AuthRepositoryImpl @Inject constructor(
             } else {
                 val doc = firestore.collection("users").document(firebaseUser.uid).get().await()
                 val user = doc.toObject(User::class.java)
+                Log.d("logerror", "user: $user")
                 if (user != null) Resource.Success(user) else Resource.Error("User document not found in Firestore")
             }
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Login failed")
         }
+
     }
 
     override suspend fun loginWithGoogle(idToken: String, username: String?): Resource<User> {
@@ -107,4 +110,14 @@ class AuthRepositoryImpl @Inject constructor(
     override fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
     }
+
+    override suspend fun sendPasswordResetEmail(email: String): Resource<Unit> {
+        return try {
+            auth.sendPasswordResetEmail(email).await()
+            Resource.Success(Unit)
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Failed to send reset email")
+        }
+    }
 }
+

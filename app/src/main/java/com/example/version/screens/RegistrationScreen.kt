@@ -32,6 +32,7 @@ import com.example.version.viewmodel.AuthViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.util.Log
 
 @Composable
 fun RegistrationScreen(
@@ -74,9 +75,6 @@ fun RegistrationScreen(
     }
 
     // Google Sign-In Manager
-    // IMPORTANT CHANGE:
-    // - Do NOT open username dialog immediately.
-    // - First try loginWithGoogle(token, null).
     val googleSignInManager = rememberGoogleSignInManager(
         onSignInResult = { idToken ->
             if (idToken.isNullOrBlank()) {
@@ -88,7 +86,6 @@ fun RegistrationScreen(
             googleIdTokenPending = idToken
             resetGoogleDialogState()
 
-            //  Try sign-in first WITHOUT username.
             viewModel.loginWithGoogle(idToken, username = null)
         },
         onError = { msg ->
@@ -259,228 +256,245 @@ fun RegistrationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 20.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name", color = AppColors.TextGray, fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Person,
-                        contentDescription = null,
-                        tint = AppColors.PrimaryOrange,
-                        modifier = Modifier.size(20.dp)
+            // Card containing all input fields
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = AppColors.BackgroundWhite),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Name Field
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name", color = AppColors.TextGray, fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Person,
+                                contentDescription = null,
+                                tint = AppColors.PrimaryOrange,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = AppColors.LightGray,
+                            unfocusedContainerColor = AppColors.LightGray,
+                            focusedBorderColor = AppColors.PrimaryOrange,
+                            unfocusedBorderColor = AppColors.BorderGray,
+                            focusedTextColor = AppColors.BlackText,
+                            unfocusedTextColor = AppColors.BlackText,
+                            focusedLabelColor = AppColors.PrimaryOrange,
+                            unfocusedLabelColor = AppColors.TextGray
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                     )
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AppColors.LightGray,
-                    unfocusedContainerColor = AppColors.LightGray,
-                    focusedBorderColor = AppColors.PrimaryOrange,
-                    unfocusedBorderColor = AppColors.BorderGray,
-                    focusedTextColor = AppColors.BlackText,
-                    unfocusedTextColor = AppColors.BlackText,
-                    focusedLabelColor = AppColors.PrimaryOrange,
-                    unfocusedLabelColor = AppColors.TextGray
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(13.dp))
 
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email", color = AppColors.TextGray, fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Email,
-                        contentDescription = null,
-                        tint = AppColors.PrimaryOrange,
-                        modifier = Modifier.size(20.dp)
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email", color = AppColors.TextGray, fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Email,
+                                contentDescription = null,
+                                tint = AppColors.PrimaryOrange,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = AppColors.LightGray,
+                            unfocusedContainerColor = AppColors.LightGray,
+                            focusedBorderColor = AppColors.PrimaryOrange,
+                            unfocusedBorderColor = AppColors.BorderGray,
+                            focusedTextColor = AppColors.BlackText,
+                            unfocusedTextColor = AppColors.BlackText,
+                            focusedLabelColor = AppColors.PrimaryOrange,
+                            unfocusedLabelColor = AppColors.TextGray
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AppColors.LightGray,
-                    unfocusedContainerColor = AppColors.LightGray,
-                    focusedBorderColor = AppColors.PrimaryOrange,
-                    unfocusedBorderColor = AppColors.BorderGray,
-                    focusedTextColor = AppColors.BlackText,
-                    unfocusedTextColor = AppColors.BlackText,
-                    focusedLabelColor = AppColors.PrimaryOrange,
-                    unfocusedLabelColor = AppColors.TextGray
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(13.dp))
 
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username", color = AppColors.TextGray, fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.AlternateEmail,
-                        contentDescription = null,
-                        tint = AppColors.PrimaryOrange,
-                        modifier = Modifier.size(20.dp)
+                    OutlinedTextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = { Text("Username", color = AppColors.TextGray, fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.AlternateEmail,
+                                contentDescription = null,
+                                tint = AppColors.PrimaryOrange,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = AppColors.LightGray,
+                            unfocusedContainerColor = AppColors.LightGray,
+                            focusedBorderColor = AppColors.PrimaryOrange,
+                            unfocusedBorderColor = AppColors.BorderGray,
+                            focusedTextColor = AppColors.BlackText,
+                            unfocusedTextColor = AppColors.BlackText,
+                            focusedLabelColor = AppColors.PrimaryOrange,
+                            unfocusedLabelColor = AppColors.TextGray
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                     )
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AppColors.LightGray,
-                    unfocusedContainerColor = AppColors.LightGray,
-                    focusedBorderColor = AppColors.PrimaryOrange,
-                    unfocusedBorderColor = AppColors.BorderGray,
-                    focusedTextColor = AppColors.BlackText,
-                    unfocusedTextColor = AppColors.BlackText,
-                    focusedLabelColor = AppColors.PrimaryOrange,
-                    unfocusedLabelColor = AppColors.TextGray
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-            )
 
-            when (isUsernameAvailable) {
-                true -> {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.Check,
-                            contentDescription = null,
-                            tint = AppColors.SuccessGreen,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "Username available",
-                            color = AppColors.SuccessGreen,
-                            fontSize = 12.sp
-                        )
+                    // Username availability status
+                    when (isUsernameAvailable) {
+                        true -> {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, top = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Check,
+                                    contentDescription = null,
+                                    tint = AppColors.SuccessGreen,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "Username available",
+                                    color = AppColors.SuccessGreen,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        false -> {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, top = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = null,
+                                    tint = AppColors.ErrorRed,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "Username taken",
+                                    color = AppColors.ErrorRed,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        else -> {
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
                     }
-                }
-                false -> {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, top = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = null,
-                            tint = AppColors.ErrorRed,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "Username taken",
-                            color = AppColors.ErrorRed,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-                else -> {
-                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Spacer(modifier = Modifier.height(13.dp))
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text("Password", color = AppColors.TextGray, fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Lock,
+                                contentDescription = null,
+                                tint = AppColors.PrimaryOrange,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    contentDescription = "Toggle password visibility",
+                                    tint = AppColors.PrimaryOrange,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = AppColors.LightGray,
+                            unfocusedContainerColor = AppColors.LightGray,
+                            focusedBorderColor = AppColors.PrimaryOrange,
+                            unfocusedBorderColor = AppColors.BorderGray,
+                            focusedTextColor = AppColors.BlackText,
+                            unfocusedTextColor = AppColors.BlackText,
+                            focusedLabelColor = AppColors.PrimaryOrange,
+                            unfocusedLabelColor = AppColors.TextGray
+                        ),
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                    )
+
+                    Spacer(modifier = Modifier.height(13.dp))
+
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Confirm Password", color = AppColors.TextGray, fontSize = 14.sp) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Lock,
+                                contentDescription = null,
+                                tint = AppColors.PrimaryOrange,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                                Icon(
+                                    if (showConfirmPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    contentDescription = "Toggle confirm password visibility",
+                                    tint = AppColors.TextGray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = AppColors.LightGray,
+                            unfocusedContainerColor = AppColors.LightGray,
+                            focusedBorderColor = AppColors.PrimaryOrange,
+                            unfocusedBorderColor = AppColors.BorderGray,
+                            focusedTextColor = AppColors.BlackText,
+                            unfocusedTextColor = AppColors.BlackText,
+                            focusedLabelColor = AppColors.PrimaryOrange,
+                            unfocusedLabelColor = AppColors.TextGray
+                        ),
+                        visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password", color = AppColors.TextGray, fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Lock,
-                        contentDescription = null,
-                        tint = AppColors.PrimaryOrange,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(
-                            if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = "Toggle password visibility",
-                            tint = AppColors.PrimaryOrange,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AppColors.LightGray,
-                    unfocusedContainerColor = AppColors.LightGray,
-                    focusedBorderColor = AppColors.PrimaryOrange,
-                    unfocusedBorderColor = AppColors.BorderGray,
-                    focusedTextColor = AppColors.BlackText,
-                    unfocusedTextColor = AppColors.BlackText,
-                    focusedLabelColor = AppColors.PrimaryOrange,
-                    unfocusedLabelColor = AppColors.TextGray
-                ),
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Confirm Password", color = AppColors.TextGray, fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Filled.Lock,
-                        contentDescription = null,
-                        tint = AppColors.PrimaryOrange,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                trailingIcon = {
-                    IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
-                        Icon(
-                            if (showConfirmPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = "Toggle confirm password visibility",
-                            tint = AppColors.TextGray,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = AppColors.LightGray,
-                    unfocusedContainerColor = AppColors.LightGray,
-                    focusedBorderColor = AppColors.PrimaryOrange,
-                    unfocusedBorderColor = AppColors.BorderGray,
-                    focusedTextColor = AppColors.BlackText,
-                    unfocusedTextColor = AppColors.BlackText,
-                    focusedLabelColor = AppColors.PrimaryOrange,
-                    unfocusedLabelColor = AppColors.TextGray
-                ),
-                visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Button(
                 onClick = {
@@ -541,12 +555,13 @@ fun RegistrationScreen(
                     )
                 }
                 is Resource.Success -> {
-                    LaunchedEffect(key1 = true) { onRegisterSuccess() }
+                    Log.d("RegisterSuccess", "✅ Registration success - calling onRegisterSuccess")
+                    onRegisterSuccess()
                 }
                 else -> {}
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -562,7 +577,7 @@ fun RegistrationScreen(
                 Divider(modifier = Modifier.weight(1f), color = AppColors.BorderGray)
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Button(
                 onClick = {
@@ -646,7 +661,7 @@ fun RegistrationScreen(
                 else -> {}
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 horizontalArrangement = Arrangement.Center,
@@ -670,7 +685,7 @@ fun RegistrationScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }

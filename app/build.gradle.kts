@@ -90,11 +90,13 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.storage)
+    // ✅ FIREBASE CLOUD MESSAGING (NEW - For push notifications)
+    implementation(libs.firebase.messaging)
 
 
     // Latest official AndroidX Lifecycle LiveData KTX
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.10.0")
-// Latest official AndroidX Lifecycle ViewModel KTX
+    // Latest official AndroidX Lifecycle ViewModel KTX
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
 }
 // me

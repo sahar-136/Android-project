@@ -20,20 +20,16 @@ class FeedViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    // Feed posts
     private val _feedPosts = MutableStateFlow<Resource<List<Post>>>(Resource.Loading)
     val feedPosts: StateFlow<Resource<List<Post>>> = _feedPosts.asStateFlow()
 
-    // Trending posts
     private val _trendingPosts = MutableStateFlow<Resource<List<Post>>>(Resource.Loading)
     val trendingPosts: StateFlow<Resource<List<Post>>> = _trendingPosts.asStateFlow()
     private var trendingStarted = false
 
-    // Like status map (id -> isLiked)  // ✅ postId → id
     private val _likeStatus = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val likeStatus: StateFlow<Map<String, Boolean>> = _likeStatus.asStateFlow()
 
-    // Like counts map (id -> count)  // ✅ postId → id
     private val _likeCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val likeCounts: StateFlow<Map<String, Int>> = _likeCounts.asStateFlow()
 
@@ -41,7 +37,6 @@ class FeedViewModel @Inject constructor(
         loadFeed()
     }
 
-    // ✅ Method to refresh feed
     fun refreshFeed() {
         loadFeed()
     }
@@ -53,15 +48,14 @@ class FeedViewModel @Inject constructor(
 
                 if (result is Resource.Success) {
                     result.data.forEach { post ->
-                        fetchPostLikeStatus(post.id)  // ✅ postId → id
-                        fetchPostLikesCount(post.id)  // ✅ postId → id
+                        fetchPostLikeStatus(post.id)
+                        fetchPostLikesCount(post.id)
                     }
                 }
             }
         }
     }
 
-    // Call when Trending tab opens first time
     fun loadTrendingOnce() {
         if (trendingStarted) return
         trendingStarted = true
@@ -72,8 +66,8 @@ class FeedViewModel @Inject constructor(
 
                 if (result is Resource.Success) {
                     result.data.forEach { post ->
-                        fetchPostLikeStatus(post.id)  // ✅ postId → id
-                        fetchPostLikesCount(post.id)  // ✅ postId → id
+                        fetchPostLikeStatus(post.id)
+                        fetchPostLikesCount(post.id)
                     }
                 }
             }

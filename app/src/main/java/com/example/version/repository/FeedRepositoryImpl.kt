@@ -34,14 +34,14 @@ class FeedRepositoryImpl @Inject constructor(
                 return@addSnapshotListener
             }
 
-            // ✅ FIX: Handle null uploadTimestamp
             val posts = snapshot?.documents?.mapNotNull { doc ->
                 try {
                     val post = doc.toObject(Post::class.java)
                     if (post != null) {
                         post.copy(
                             id = doc.id,
-                            uploadTimestamp = post.uploadTimestamp ?: Timestamp.now()
+                            uploadTimestamp = post.uploadTimestamp ?: Timestamp.now(),
+                            userProfileUrl = post.userProfileUrl ?: ""  // ✅ Ensure userProfileUrl
                         )
                     } else {
                         Post(id = doc.id, uploadTimestamp = Timestamp.now())
@@ -78,14 +78,14 @@ class FeedRepositoryImpl @Inject constructor(
                 return@addSnapshotListener
             }
 
-            // ✅ FIX: Handle null uploadTimestamp
             val posts = snapshot?.documents?.mapNotNull { doc ->
                 try {
                     val post = doc.toObject(Post::class.java)
                     if (post != null) {
                         post.copy(
                             id = doc.id,
-                            uploadTimestamp = post.uploadTimestamp ?: Timestamp.now()
+                            uploadTimestamp = post.uploadTimestamp ?: Timestamp.now(),
+                            userProfileUrl = post.userProfileUrl ?: ""  // ✅ Ensure userProfileUrl
                         )
                     } else {
                         Post(id = doc.id, uploadTimestamp = Timestamp.now())

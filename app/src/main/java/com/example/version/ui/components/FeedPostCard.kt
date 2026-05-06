@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,13 +51,12 @@ fun FeedPostCard(
     modifier: Modifier = Modifier
 ) {
 
-    // ❤️ LIKE STATE
     val isLiked by remember(feedViewModel.likeStatus) {
-        derivedStateOf { feedViewModel.isPostLiked(post.id) }  // ✅ postId → id
+        derivedStateOf { feedViewModel.isPostLiked(post.id) }
     }
 
     val likeCount by remember(feedViewModel.likeCounts) {
-        derivedStateOf { feedViewModel.getLikeCount(post.id) }  // ✅ postId → id
+        derivedStateOf { feedViewModel.getLikeCount(post.id) }
     }
 
     Card(
@@ -82,6 +80,7 @@ fun FeedPostCard(
                     .padding(bottom = 12.dp)
             ) {
 
+                // ✅ PROFILE IMAGE BOX
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -89,12 +88,23 @@ fun FeedPostCard(
                         .background(AppColors.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = post.userName.take(1).uppercase(),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AppColors.PrimaryOrange
-                    )
+                    if (post.userProfileUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = post.userProfileUrl,
+                            contentDescription = "User Profile",
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = post.userName.take(1).uppercase(),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.PrimaryOrange
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -120,7 +130,7 @@ fun FeedPostCard(
                 }
             }
 
-            // IMAGE
+            // POST IMAGE
             AsyncImage(
                 model = post.photoUrl,
                 contentDescription = "Post Image",
@@ -129,8 +139,8 @@ fun FeedPostCard(
                     .height(250.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
-                        if (post.id.isNotEmpty()) {  // ✅ postId → id
-                            navController.navigate(Routes.photoDetails(post.id))  // ✅ postId → id
+                        if (post.id.isNotEmpty()) {
+                            navController.navigate(Routes.photoDetails(post.id))
                         }
                     },
                 contentScale = ContentScale.Crop
@@ -156,10 +166,9 @@ fun FeedPostCard(
 
                 // ❤️ LIKE BUTTON
                 Row(verticalAlignment = Alignment.CenterVertically) {
-
                     IconButton(
                         onClick = {
-                            feedViewModel.togglePostLike(post.id)  // ✅ postId → id
+                            feedViewModel.togglePostLike(post.id)
                         }
                     ) {
                         Icon(
@@ -183,11 +192,10 @@ fun FeedPostCard(
 
                 // 💬 COMMENT BUTTON
                 Row(verticalAlignment = Alignment.CenterVertically) {
-
                     IconButton(
                         onClick = {
-                            if (post.id.isNotEmpty()) {  // ✅ postId → id
-                                navController.navigate(Routes.comments(post.id))  // ✅ postId → id
+                            if (post.id.isNotEmpty()) {
+                                navController.navigate(Routes.comments(post.id))
                             }
                         }
                     ) {
@@ -206,15 +214,6 @@ fun FeedPostCard(
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
-
-                // SHARE
-                IconButton(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.Outlined.Share,
-                        contentDescription = "Share",
-                        tint = AppColors.TextGray
-                    )
-                }
             }
         }
     }

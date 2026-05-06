@@ -1,6 +1,7 @@
 package com.example.version.viewmodel
 
 import androidx.lifecycle.LiveData
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,26 +17,37 @@ class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _registerState = MutableLiveData<Resource<User>>()
-    val registerState: LiveData<Resource<User>> = _registerState
+    private val _registerState = MutableLiveData<Resource<User>?>()
+    val registerState: LiveData<Resource<User>?> = _registerState
 
+    private val _loginState = MutableLiveData<Resource<User>?>()
+    val loginState: LiveData<Resource<User>?> = _loginState
 
-    private val _loginState = MutableLiveData<Resource<User>>()
-    val loginState: LiveData<Resource<User>> = _loginState
-
-    private val _googleLoginState = MutableLiveData<Resource<User>>()
-    val googleLoginState: LiveData<Resource<User>> = _googleLoginState
+    private val _googleLoginState = MutableLiveData<Resource<User>?>()
+    val googleLoginState: LiveData<Resource<User>?> = _googleLoginState
 
     private val _isUsernameAvailable = MutableLiveData<Boolean?>()
     val isUsernameAvailable: LiveData<Boolean?> = _isUsernameAvailable
 
-    // single source of truth for session
-    private val _isLoggedIn = MutableLiveData<Boolean>(authRepository.getCurrentUserId() != null)
+    // ✅ CRITICAL: Single source of truth for session
+    private val _isLoggedIn = MutableLiveData<Boolean>(false)
     val isLoggedIn: LiveData<Boolean> = _isLoggedIn
 
+    private val _resetState = MutableLiveData<Resource<Unit>?>()
+    val resetState: LiveData<Resource<Unit>?> = _resetState
+
     init {
-        // app open hote hi session check
-        _isLoggedIn.value = authRepository.getCurrentUserId() != null
+        // ✅ App launch par session check karo
+        val currentUserId = authRepository.getCurrentUserId()
+        Log.d("AuthVM_Init", "currentUserId: $currentUserId")
+
+        if (currentUserId != null && currentUserId.isNotBlank()) {
+            _isLoggedIn.value = true
+            Log.d("AuthVM_Init", "✅ User already logged in: $currentUserId")
+        } else {
+            _isLoggedIn.value = false
+            Log.d("AuthVM_Init", "❌ No user found - show login screen")
+        }
     }
 
     fun register(name: String, email: String, username: String, password: String) {
@@ -43,7 +55,14 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             val result = authRepository.registerWithEmail(name, email, username, password)
             _registerState.value = result
-            _isLoggedIn.value = result is Resource.Success
+
+            // ✅ Registration successful → update session IMMEDIATELY
+            if (result is Resource.Success) {
+                _isLoggedIn.value = true
+                Log.d("AuthVM_Register", "✅ Registration success - isLoggedIn: TRUE")
+            } else if (result is Resource.Error) {
+                Log.d("AuthVM_Register", "❌ Registration failed: ${result.message}")
+            }
         }
     }
 
@@ -51,8 +70,16 @@ class AuthViewModel @Inject constructor(
         _loginState.value = Resource.Loading
         viewModelScope.launch {
             val result = authRepository.loginWithEmail(email, password)
+            Log.d("AuthVM_Login", "result: $result")
             _loginState.value = result
-            _isLoggedIn.value = result is Resource.Success
+
+            // ✅ Login successful → update session IMMEDIATELY
+            if (result is Resource.Success) {
+                _isLoggedIn.value = true
+                Log.d("AuthVM_Login", "✅ Login success - isLoggedIn: TRUE")
+            } else if (result is Resource.Error) {
+                Log.d("AuthVM_Login", "❌ Login failed: ${result.message}")
+            }
         }
     }
 
@@ -61,7 +88,14 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             val result = authRepository.loginWithGoogle(idToken, username)
             _googleLoginState.value = result
-            _isLoggedIn.value = result is Resource.Success
+
+            // ✅ Google login successful → update session IMMEDIATELY
+            if (result is Resource.Success) {
+                _isLoggedIn.value = true
+                Log.d("AuthVM_GoogleLogin", "✅ Google login success - isLoggedIn: TRUE")
+            } else if (result is Resource.Error) {
+                Log.d("AuthVM_GoogleLogin", "❌ Google login failed: ${result.message}")
+            }
         }
     }
 
@@ -72,8 +106,24 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun sendPasswordReset(email: String) {
+        _resetState.value = Resource.Loading
+        viewModelScope.launch {
+            _resetState.value = authRepository.sendPasswordResetEmail(email)
+        }
+    }
+
     fun logout() {
         authRepository.logout()
-        _isLoggedIn.value = false
+        _isLoggedIn.value = false  // ✅ CRITICAL: Update session IMMEDIATELY
+
+        // ✅ Clear all states
+        _registerState.value = null
+        _loginState.value = null
+        _googleLoginState.value = null
+        _isUsernameAvailable.value = null
+        _resetState.value = null
+
+        Log.d("AuthVM_Logout", "✅ User logged out - isLoggedIn: FALSE")
     }
 }

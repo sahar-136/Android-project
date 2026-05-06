@@ -1,5 +1,6 @@
 package com.example.version.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -23,6 +25,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.example.version.navigation.Routes
 import com.example.version.ui.theme.AppColors
+import com.example.version.viewmodel.AuthViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +36,9 @@ fun MainScaffold(
 ) {
     val navBackStackEntry by mainNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // Get AuthViewModel to access logout function
+    val authViewModel: AuthViewModel = hiltViewModel()
 
     val showBottomBar = currentRoute in setOf(
         Routes.HOME,
@@ -115,9 +121,19 @@ fun MainScaffold(
             startDestination = Routes.HOME,
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable(Routes.HOME) { HomeScreen(navController = mainNavController) }
-            composable(Routes.SEARCH) { SearchScreen(navController = mainNavController) }
-            composable(Routes.UPLOAD) { UploadScreen(navController = mainNavController) }
+            composable(Routes.HOME) {
+                HomeScreen(
+                    navController = mainNavController
+                )
+            }
+
+            composable(Routes.SEARCH) {
+                SearchScreen(navController = mainNavController)
+            }
+
+            composable(Routes.UPLOAD) {
+                UploadScreen(navController = mainNavController)
+            }
 
             composable(
                 route = Routes.PROFILE,
@@ -127,7 +143,8 @@ fun MainScaffold(
                 ProfileScreen(
                     navController = mainNavController,
                     userId = userId,
-                    onEditProfile = { mainNavController.navigate(Routes.EDIT_PROFILE) }
+                    onEditProfile = { mainNavController.navigate(Routes.EDIT_PROFILE) },
+
                 )
             }
 
