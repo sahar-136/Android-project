@@ -13,7 +13,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,7 +35,7 @@ import com.google.firebase.auth.FirebaseAuth
 fun HomeScreen(
     navController: NavController,
     feedViewModel: FeedViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel,  // ✅ no default — must be passed from MainScaffold (Activity-scoped)
+    authViewModel: AuthViewModel,
     notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     val feedState by feedViewModel.feedPosts.collectAsState()
@@ -45,13 +44,15 @@ fun HomeScreen(
     val notifications by notificationViewModel.notifications.collectAsState()
     val unreadCount by notificationViewModel.unreadCount.collectAsState()
 
+    // ✅ userId -> profileImageUrl (from users collection, real-time)
+    val userProfileUrls by feedViewModel.userProfileUrls.collectAsState()
+
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showNotifications by remember { mutableStateOf(false) }
     var selectedTabIndex by rememberSaveable { mutableStateOf(0) }
 
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
-    // ✅ Load notifications
     LaunchedEffect(currentUserId) {
         if (currentUserId.isNotBlank()) {
             notificationViewModel.loadNotifications(currentUserId)
@@ -59,7 +60,6 @@ fun HomeScreen(
         }
     }
 
-    // ✅ Load trending once
     LaunchedEffect(selectedTabIndex) {
         if (selectedTabIndex == 1) {
             feedViewModel.loadTrendingOnce()
@@ -69,8 +69,6 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             Column {
-
-                // 🔝 Top Bar
                 TopAppBar(
                     title = {
                         Box(
@@ -103,7 +101,6 @@ fun HomeScreen(
                     )
                 )
 
-                // 🔻 Tabs
                 SecondaryTabRow(selectedTabIndex = selectedTabIndex) {
                     Tab(
                         selected = selectedTabIndex == 0,
@@ -125,11 +122,9 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-
             val state = if (selectedTabIndex == 0) feedState else trendingState
 
             when (state) {
-
                 is Resource.Loading -> {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
@@ -154,6 +149,7 @@ fun HomeScreen(
                             items(posts, key = { it.id }) { post ->
                                 FeedPostCard(
                                     post = post,
+                                    profileImageUrl = userProfileUrls[post.userId].orEmpty(),
                                     feedViewModel = feedViewModel,
                                     navController = navController
                                 )
@@ -163,9 +159,7 @@ fun HomeScreen(
                 }
             }
 
-            // 🔔 Notifications dropdown
             if (showNotifications) {
-
                 val notificationsList = when (notifications) {
                     is Resource.Success -> {
                         (notifications as Resource.Success<List<Notification>>).data ?: emptyList()
@@ -201,13 +195,12 @@ fun HomeScreen(
         }
     }
 
-    // 🔥 Logout dialog
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
             confirmButton = {
                 Button(onClick = {
-                    authViewModel.logout()  // ✅ calls logout on Activity-scoped instance
+                    authViewModel.logout()
                     showLogoutDialog = false
                 }) {
                     Text("Logout")

@@ -3,9 +3,9 @@ package com.example.version.repository
 import android.util.Log
 import com.example.version.models.Post
 import com.example.version.util.Resource
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.Timestamp
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -16,7 +16,6 @@ class FeedRepositoryImpl @Inject constructor(
 ) : FeedRepository {
 
     override fun getFeedPosts(): Flow<Resource<List<Post>>> = callbackFlow {
-
         trySend(Resource.Loading)
 
         val query = firestore.collection("posts")
@@ -29,7 +28,6 @@ class FeedRepositoryImpl @Inject constructor(
                 Log.e("FIREBASE_FULL", error.toString())
                 Log.e("FIREBASE_FULL", Log.getStackTraceString(error))
                 Log.e("FIREBASE_FULL", error.message ?: "No message")
-
                 trySend(Resource.Error(error.message ?: "Something went wrong"))
                 return@addSnapshotListener
             }
@@ -40,8 +38,7 @@ class FeedRepositoryImpl @Inject constructor(
                     if (post != null) {
                         post.copy(
                             id = doc.id,
-                            uploadTimestamp = post.uploadTimestamp ?: Timestamp.now(),
-                            userProfileUrl = post.userProfileUrl ?: ""
+                            uploadTimestamp = post.uploadTimestamp ?: Timestamp.now()
                         )
                     } else {
                         Post(id = doc.id, uploadTimestamp = Timestamp.now())
@@ -60,7 +57,6 @@ class FeedRepositoryImpl @Inject constructor(
     }
 
     override fun getTrendingPosts(): Flow<Resource<List<Post>>> = callbackFlow {
-
         trySend(Resource.Loading)
 
         val query = firestore.collection("posts")
@@ -73,7 +69,6 @@ class FeedRepositoryImpl @Inject constructor(
                 Log.e("FIREBASE_FULL", error.toString())
                 Log.e("FIREBASE_FULL", Log.getStackTraceString(error))
                 Log.e("FIREBASE_FULL", error.message ?: "No message")
-
                 trySend(Resource.Error(error.message ?: "Something went wrong"))
                 return@addSnapshotListener
             }
@@ -84,8 +79,7 @@ class FeedRepositoryImpl @Inject constructor(
                     if (post != null) {
                         post.copy(
                             id = doc.id,
-                            uploadTimestamp = post.uploadTimestamp ?: Timestamp.now(),
-                            userProfileUrl = post.userProfileUrl ?: ""
+                            uploadTimestamp = post.uploadTimestamp ?: Timestamp.now()
                         )
                     } else {
                         Post(id = doc.id, uploadTimestamp = Timestamp.now())
@@ -121,7 +115,6 @@ class FeedRepositoryImpl @Inject constructor(
         awaitClose { listener.remove() }
     }
 
-    // ✅ YE NAYA FUNCTION HAI - Like count real-time fetch کرتا ہے
     override suspend fun getPostLikesCount(postId: String): Flow<Int> = callbackFlow {
         val listener = firestore.collection("posts")
             .document(postId)
@@ -131,7 +124,6 @@ class FeedRepositoryImpl @Inject constructor(
                     trySend(0)
                     return@addSnapshotListener
                 }
-                Log.d("like_error","Fetch like count in repo")
 
                 val count = snapshot?.getLong("likesCount")?.toInt() ?: 0
                 Log.d("FeedRepo-Likes", "Like count for $postId: $count")

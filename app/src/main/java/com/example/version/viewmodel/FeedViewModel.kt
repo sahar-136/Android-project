@@ -8,6 +8,8 @@ import com.example.version.repository.AuthRepository
 import com.example.version.repository.FeedRepository
 import com.example.version.repository.LikeRepository
 import com.example.version.util.Resource
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -17,7 +19,8 @@ import javax.inject.Inject
 class FeedViewModel @Inject constructor(
     private val feedRepository: FeedRepository,
     private val likeRepository: LikeRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val firestore: FirebaseFirestore // ✅ Added for user snapshot listeners
 ) : ViewModel() {
 
     private val _feedPosts = MutableStateFlow<Resource<List<Post>>>(Resource.Loading)
@@ -35,16 +38,30 @@ class FeedViewModel @Inject constructor(
     private val _likeCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val likeCounts: StateFlow<Map<String, Int>> = _likeCounts.asStateFlow()
 
-    // Comment counts map (postId → count) ✅ YE NAYA FIELD HAI
+    // Comment counts map (postId → count)
     private val _commentCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val commentCounts: StateFlow<Map<String, Int>> = _commentCounts.asStateFlow()
 
-    // Track which posts already have listeners active ✅ YE NAYE FIELDS HAIN
+    // ✅ User profile URLs (userId -> profileImageUrl) from users collection (real-time)
+    private val _userProfileUrls = MutableStateFlow<Map<String, String>>(emptyMap())
+    val userProfileUrls: StateFlow<Map<String, String>> = _userProfileUrls.asStateFlow()
+
+    // Track listeners
     private val postLikeCountListeners = mutableMapOf<String, Boolean>()
     private val postCommentCountListeners = mutableMapOf<String, Boolean>()
 
+    // ✅ Track user listeners so we don’t create duplicates
+    private val userListeners = mutableMapOf<String, ListenerRegistration>()
+
     init {
         loadFeed()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // ✅ Remove user snapshot listeners to avoid leaks
+        userListeners.values.forEach { it.remove() }
+        userListeners.clear()
     }
 
     fun refreshFeed() {
@@ -59,9 +76,13 @@ class FeedViewModel @Inject constructor(
                 if (result is Resource.Success) {
                     result.data.forEach { post ->
                         Log.d("FeedVM", "Setting up listeners for post: ${post.id}")
+
+                        // ✅ Watch post owner's profile image in real-time (join)
+                        watchUserProfileImage(post.userId)
+
                         fetchPostLikeStatus(post.id)
                         fetchPostLikesCount(post.id)
-                        fetchPostCommentCount(post.id)  // ✅ YE NAYA LINE HAI
+                        fetchPostCommentCount(post.id)
                     }
                 }
             }
@@ -79,13 +100,38 @@ class FeedViewModel @Inject constructor(
                 if (result is Resource.Success) {
                     result.data.forEach { post ->
                         Log.d("FeedVM", "Setting up listeners for trending post: ${post.id}")
+
+                        // ✅ Watch post owner's profile image in real-time (join)
+                        watchUserProfileImage(post.userId)
+
                         fetchPostLikeStatus(post.id)
                         fetchPostLikesCount(post.id)
-                        fetchPostCommentCount(post.id)  // ✅ YE NAYA LINE HAI
+                        fetchPostCommentCount(post.id)
                     }
                 }
             }
         }
+    }
+
+    // ✅ Real-time user doc listener (userId -> profileImageUrl)
+    private fun watchUserProfileImage(userId: String) {
+        if (userId.isBlank()) return
+        if (userListeners.containsKey(userId)) return
+
+        val registration = firestore.collection("users")
+            .document(userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("FeedVM-User", "Error listening user $userId: ${error.message}")
+                    return@addSnapshotListener
+                }
+
+                val url = snapshot?.getString("profileImageUrl").orEmpty()
+                _userProfileUrls.update { it + (userId to url) }
+                Log.d("FeedVM-User", "Updated profileImageUrl for $userId = '$url'")
+            }
+
+        userListeners[userId] = registration
     }
 
     private fun fetchPostLikeStatus(postId: String) {
@@ -97,7 +143,6 @@ class FeedViewModel @Inject constructor(
         }
     }
 
-    // ✅ YE FUNCTION UPDATED HAI - ab feedRepository se like count lete hain
     private fun fetchPostLikesCount(postId: String) {
         if (postLikeCountListeners[postId] == true) {
             Log.d("FeedVM", "Like listener already active for $postId, skipping...")
@@ -107,15 +152,13 @@ class FeedViewModel @Inject constructor(
         postLikeCountListeners[postId] = true
 
         viewModelScope.launch {
-            Log.d("like_error","Fetching Like count as $postLikeCountListeners")
-            feedRepository.getPostLikesCount(postId).collect { count ->  // ✅ FEED REPOSITORY
+            feedRepository.getPostLikesCount(postId).collect { count ->
                 _likeCounts.update { it + (postId to count) }
                 Log.d("FeedVM", "Like count for $postId: $count")
             }
         }
     }
 
-    // ✅ YE NAYA FUNCTION HAI - Comment count کے لیے
     private fun fetchPostCommentCount(postId: String) {
         if (postCommentCountListeners[postId] == true) {
             Log.d("FeedVM", "Comment listener already active for $postId, skipping...")
@@ -138,7 +181,6 @@ class FeedViewModel @Inject constructor(
         viewModelScope.launch {
             val result = likeRepository.togglePostLike(postId, userId)
             if (result is Resource.Success) {
-                Log.d("like_error","Result: ${result.data}")
                 val newStatus = result.data
                 _likeStatus.update { it + (postId to newStatus) }
                 fetchPostLikesCount(postId)
@@ -147,18 +189,7 @@ class FeedViewModel @Inject constructor(
         }
     }
 
-    fun getLikeCount(postId: String): Int {
-        val count = _likeCounts.value[postId] ?: 0
-        Log.d("FeedVM", "Getting like count for $postId: $count")
-        return count
-    }
-
+    fun getLikeCount(postId: String): Int = _likeCounts.value[postId] ?: 0
     fun isPostLiked(postId: String): Boolean = _likeStatus.value[postId] ?: false
-
-    // ✅ YE NAYA FUNCTION HAI
-    fun getCommentCount(postId: String): Int {
-        val count = _commentCounts.value[postId] ?: 0
-        Log.d("FeedVM", "Getting comment count for $postId: $count")
-        return count
-    }
+    fun getCommentCount(postId: String): Int = _commentCounts.value[postId] ?: 0
 }

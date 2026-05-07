@@ -5,10 +5,9 @@ import com.google.firebase.firestore.DocumentId
 
 data class Post(
     @DocumentId
-    val id: String = "",  // ✅ lowercase 'i'
+    val id: String = "",
     val userId: String = "",
     val userName: String = "",
-    val userProfileUrl: String = "",
     val photoUrl: String = "",
     val caption: String = "",
     val uploadTimestamp: Timestamp = Timestamp.now(),
@@ -20,10 +19,9 @@ data class Post(
     val tags: List<String> = emptyList()
 ) {
     constructor() : this(
-        id = "",  // ✅ lowercase 'i'
+        id = "",
         userId = "",
         userName = "",
-        userProfileUrl = "",
         photoUrl = "",
         caption = "",
         uploadTimestamp = Timestamp.now(),

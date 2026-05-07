@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,11 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil3.compose.AsyncImage
 import com.example.version.models.Post
 import com.example.version.navigation.Routes
 import com.example.version.ui.theme.AppColors
 import com.example.version.viewmodel.FeedViewModel
-import coil3.compose.AsyncImage
 import com.google.firebase.Timestamp
 
 fun formatTimestamp(timestamp: Timestamp?): String {
@@ -47,11 +47,11 @@ fun formatTimestamp(timestamp: Timestamp?): String {
 @Composable
 fun FeedPostCard(
     post: Post,
+    profileImageUrl: String, // ✅ from users table (real-time)
     feedViewModel: FeedViewModel,
     navController: NavController,
     modifier: Modifier = Modifier
 ) {
-
     val likeCounts by feedViewModel.likeCounts.collectAsState()
     val likeStatus by feedViewModel.likeStatus.collectAsState()
     val commentCounts by feedViewModel.commentCounts.collectAsState()
@@ -64,13 +64,10 @@ fun FeedPostCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 6.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = AppColors.BackgroundWhite
-        ),
+        colors = CardDefaults.cardColors(containerColor = AppColors.BackgroundWhite),
         elevation = CardDefaults.cardElevation(2.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
-
         Column(modifier = Modifier.padding(12.dp)) {
 
             // USER HEADER
@@ -80,8 +77,7 @@ fun FeedPostCard(
                     .fillMaxWidth()
                     .padding(bottom = 12.dp)
             ) {
-
-                // ✅ PROFILE IMAGE BOX
+                // ✅ PROFILE IMAGE BOX (from users table)
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -89,9 +85,9 @@ fun FeedPostCard(
                         .background(AppColors.LightGray),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (post.userProfileUrl.isNotBlank()) {
+                    if (profileImageUrl.isNotBlank()) {
                         AsyncImage(
-                            model = post.userProfileUrl,
+                            model = profileImageUrl,
                             contentDescription = "User Profile",
                             modifier = Modifier
                                 .size(40.dp)
@@ -164,20 +160,16 @@ fun FeedPostCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-
                 // ❤️ LIKE BUTTON
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = {
                             feedViewModel.togglePostLike(post.id)
-                            Log.d("like_error","Lick Clicked with post id: ${post.id}")
+                            Log.d("like_error", "Like Clicked with post id: ${post.id}")
                         }
                     ) {
                         Icon(
-                            imageVector = if (isLiked)
-                                Icons.Filled.Favorite
-                            else
-                                Icons.Filled.FavoriteBorder,
+                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             contentDescription = "Like",
                             tint = if (isLiked) Color.Red else AppColors.TextGray
                         )
@@ -208,7 +200,6 @@ fun FeedPostCard(
                         )
                     }
 
-                    // ✅ YE LINE BADAL GAYA - اب commentCount use ہو رہا ہے بجائے post.commentsCount کے
                     Text(
                         text = "$commentCount",
                         fontSize = 14.sp,

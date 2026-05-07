@@ -13,7 +13,6 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import kotlin.collections.emptyList
 
-
 class UploadRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val storage: FirebaseStorage,
@@ -31,7 +30,6 @@ class UploadRepositoryImpl @Inject constructor(
             val user = userDoc.toObject(User::class.java)
                 ?: return Resource.Error("User not found")
 
-            // ✅ LOG: Check if user profileImageUrl exists
             Log.d("UploadRepo", "User found: ${user.name}, profileImageUrl: '${user.profileImageUrl}'")
 
             // Check upload limit
@@ -49,17 +47,10 @@ class UploadRepositoryImpl @Inject constructor(
             // Create post document
             val postDoc = firestore.collection("posts").document()
 
-            // ✅ FIX: Ensure userProfileUrl is properly populated
-            val userProfileUrl = if (user.profileImageUrl.isNotBlank()) {
-                user.profileImageUrl
-            } else {
-                ""
-            }
-
+            // ✅ IMPORTANT: No userProfileUrl stored in posts anymore
             val postMap = mapOf(
                 "userId" to userId,
                 "userName" to user.name,
-                "userProfileUrl" to userProfileUrl,  // ✅ Properly handled
                 "photoUrl" to downloadUrl,
                 "caption" to (caption ?: ""),
                 "uploadTimestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
@@ -71,7 +62,7 @@ class UploadRepositoryImpl @Inject constructor(
                 "tags" to emptyList<String>()
             )
 
-            Log.d("UploadRepo", "Creating post with userProfileUrl: '$userProfileUrl'")
+            Log.d("UploadRepo", "Creating post (no userProfileUrl) ...")
             postDoc.set(postMap).await()
             Log.d("UploadRepo", "Post created: ${postDoc.id}")
 
@@ -86,12 +77,10 @@ class UploadRepositoryImpl @Inject constructor(
 
             Log.d("UploadRepo", "User stats updated")
 
-            // ✅ CORRECT: Return Post with id (not postId)
             val post = Post(
                 id = postDoc.id,
                 userId = userId,
                 userName = user.name,
-                userProfileUrl = userProfileUrl,  // ✅ Use same value
                 photoUrl = downloadUrl,
                 caption = caption ?: "",
                 uploadTimestamp = Timestamp.now(),
@@ -103,12 +92,12 @@ class UploadRepositoryImpl @Inject constructor(
                 tags = emptyList()
             )
 
-            Log.d("UploadRepo", "Returning post: id=${post.id}, userProfileUrl='${post.userProfileUrl}'")
+            Log.d("UploadRepo", "Returning post: id=${post.id}")
             Resource.Success(post)
 
         } catch (e: Exception) {
             Log.e("UploadRepo", "Error uploading post: ${e.message}", e)
-            return Resource.Error(e.message ?: "Failed to upload photo")
+            Resource.Error(e.message ?: "Failed to upload photo")
         }
     }
 }
