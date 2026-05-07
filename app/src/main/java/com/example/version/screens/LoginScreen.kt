@@ -101,11 +101,27 @@ fun LoginScreen(
         googleSignInManager.setActivityResultLauncher(launcher)
     }
 
-    // If repository says username is required, open dialog (first-time user only)
+    // ✅ Handle login success as a side effect (not during composition)
+    LaunchedEffect(loginState) {
+        if (loginState is Resource.Success) {
+            Log.d("logerror", "✅ Login success - calling onLoginSuccess")
+            onLoginSuccess()
+        }
+    }
+
+    // ✅ Handle Google login success as a side effect (not during composition)
+    // Also handles the "Username is required" error for first-time Google users
     LaunchedEffect(googleLoginState) {
-        val msg = (googleLoginState as? Resource.Error)?.message.orEmpty()
-        if (msg.contains("Username is required", ignoreCase = true)) {
-            showUsernameDialog = true
+        when {
+            googleLoginState is Resource.Success -> {
+                Log.d("logerror", "✅ Google login success - calling onLoginSuccess")
+                onLoginSuccess()
+            }
+            (googleLoginState as? Resource.Error)?.message
+                .orEmpty()
+                .contains("Username is required", ignoreCase = true) -> {
+                showUsernameDialog = true
+            }
         }
     }
 
@@ -336,7 +352,7 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(
-                    onClick = { navController.navigate(Routes.RESET_PASSWORD)},
+                    onClick = { navController.navigate(Routes.RESET_PASSWORD) },
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
@@ -368,6 +384,7 @@ fun LoginScreen(
                 )
             }
 
+            // ✅ Only show Loading/Error states in UI; Success is handled by LaunchedEffect above
             when (loginState) {
                 is Resource.Loading -> {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -395,10 +412,6 @@ fun LoginScreen(
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
                     )
-                }
-                is Resource.Success -> {
-                    Log.d("logerror", "✅ Login success - calling onLoginSuccess")
-                    onLoginSuccess()  // ✅ CALL IMMEDIATELY - NO LAUNCHEDEFFECT DELAY
                 }
                 else -> {}
             }
@@ -466,6 +479,7 @@ fun LoginScreen(
                 )
             }
 
+            // ✅ Only show Loading/Error states in UI; Success is handled by LaunchedEffect above
             when (googleLoginState) {
                 is Resource.Loading -> {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -496,10 +510,6 @@ fun LoginScreen(
                             textAlign = TextAlign.Center
                         )
                     }
-                }
-                is Resource.Success -> {
-                    Log.d("logerror", "✅ Google login success - calling onLoginSuccess")
-                    onLoginSuccess()  // ✅ CALL IMMEDIATELY - NO LAUNCHEDEFFECT DELAY
                 }
                 else -> {}
             }

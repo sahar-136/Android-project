@@ -36,7 +36,7 @@ import com.google.firebase.auth.FirebaseAuth
 fun HomeScreen(
     navController: NavController,
     feedViewModel: FeedViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel,  // ✅ no default — must be passed from MainScaffold (Activity-scoped)
     notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     val feedState by feedViewModel.feedPosts.collectAsState()
@@ -207,7 +207,7 @@ fun HomeScreen(
             onDismissRequest = { showLogoutDialog = false },
             confirmButton = {
                 Button(onClick = {
-                    authViewModel.logout()
+                    authViewModel.logout()  // ✅ calls logout on Activity-scoped instance
                     showLogoutDialog = false
                 }) {
                     Text("Logout")

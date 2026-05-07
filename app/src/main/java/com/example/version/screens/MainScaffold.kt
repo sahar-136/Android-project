@@ -16,7 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -32,13 +31,11 @@ import com.google.firebase.auth.FirebaseAuth
 @Composable
 fun MainScaffold(
     rootNavController: NavHostController,
-    mainNavController: NavHostController
+    mainNavController: NavHostController,
+    authViewModel: AuthViewModel  // ✅ Activity-scoped instance passed from MainActivity
 ) {
     val navBackStackEntry by mainNavController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-    // Get AuthViewModel to access logout function
-    val authViewModel: AuthViewModel = hiltViewModel()
 
     val showBottomBar = currentRoute in setOf(
         Routes.HOME,
@@ -123,7 +120,8 @@ fun MainScaffold(
         ) {
             composable(Routes.HOME) {
                 HomeScreen(
-                    navController = mainNavController
+                    navController = mainNavController,
+                    authViewModel = authViewModel  // ✅ pass Activity-scoped instance
                 )
             }
 
@@ -144,7 +142,6 @@ fun MainScaffold(
                     navController = mainNavController,
                     userId = userId,
                     onEditProfile = { mainNavController.navigate(Routes.EDIT_PROFILE) },
-
                 )
             }
 

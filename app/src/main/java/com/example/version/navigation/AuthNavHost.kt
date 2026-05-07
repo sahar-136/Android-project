@@ -8,10 +8,12 @@ import androidx.navigation.compose.composable
 import com.example.version.screens.LoginScreen
 import com.example.version.screens.RegistrationScreen
 import com.example.version.screens.ResetPasswordScreen
+import com.example.version.viewmodel.AuthViewModel
 
 @Composable
 fun AuthNavGraph(
-    navController: NavHostController
+    navController: NavHostController,
+    authViewModel: AuthViewModel  // ✅ Activity-scoped instance passed from MainActivity
 ) {
     NavHost(
         navController = navController,
@@ -24,11 +26,10 @@ fun AuthNavGraph(
                     navController.navigate(Routes.REGISTER)
                 },
                 onLoginSuccess = {
-                    Log.d("NAV_DEBUG", "✅ Login Success - ViewModel already updated isLoggedIn")
-                    // ✅ ViewModel has already set isLoggedIn = true
-                    // ✅ MainActivity will automatically switch to MainScaffold
+                    Log.d("NAV_DEBUG", "✅ Login Success - isLoggedIn updated on Activity-scoped VM")
                 },
-                navController = navController
+                navController = navController,
+                viewModel = authViewModel  // ✅ override default hiltViewModel() with shared instance
             )
         }
 
@@ -38,10 +39,9 @@ fun AuthNavGraph(
                     navController.popBackStack()
                 },
                 onRegisterSuccess = {
-                    Log.d("NAV_DEBUG", "✅ Register Success - ViewModel already updated isLoggedIn")
-                    // ✅ ViewModel has already set isLoggedIn = true
-                    // ✅ MainActivity will automatically switch to MainScaffold
-                }
+                    Log.d("NAV_DEBUG", "✅ Register Success - isLoggedIn updated on Activity-scoped VM")
+                },
+                viewModel = authViewModel  // ✅ override default hiltViewModel() with shared instance
             )
         }
 

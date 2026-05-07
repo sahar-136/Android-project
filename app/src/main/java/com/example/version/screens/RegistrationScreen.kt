@@ -104,11 +104,26 @@ fun RegistrationScreen(
         googleSignInManager.setActivityResultLauncher(launcher)
     }
 
-    // If repository says username is required, open dialog (first-time user only)
+    // ✅ Handle registration success as a side effect (not during composition)
+    LaunchedEffect(registerState) {
+        if (registerState is Resource.Success) {
+            Log.d("RegisterSuccess", "✅ Registration success - calling onRegisterSuccess")
+            onRegisterSuccess()
+        }
+    }
+
+    // ✅ Handle Google login success/error as side effects (not during composition)
     LaunchedEffect(googleLoginState) {
-        val msg = (googleLoginState as? Resource.Error)?.message.orEmpty()
-        if (msg.contains("Username is required", ignoreCase = true)) {
-            showUsernameDialog = true
+        when {
+            googleLoginState is Resource.Success -> {
+                Log.d("RegisterSuccess", "✅ Google register success - calling onRegisterSuccess")
+                onRegisterSuccess()
+            }
+            (googleLoginState as? Resource.Error)?.message
+                .orEmpty()
+                .contains("Username is required", ignoreCase = true) -> {
+                showUsernameDialog = true
+            }
         }
     }
 
@@ -526,6 +541,7 @@ fun RegistrationScreen(
                 )
             }
 
+            // ✅ Only show Loading/Error states in UI; Success is handled by LaunchedEffect above
             when (registerState) {
                 is Resource.Loading -> {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -553,10 +569,6 @@ fun RegistrationScreen(
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
                     )
-                }
-                is Resource.Success -> {
-                    Log.d("RegisterSuccess", "✅ Registration success - calling onRegisterSuccess")
-                    onRegisterSuccess()
                 }
                 else -> {}
             }
@@ -624,6 +636,7 @@ fun RegistrationScreen(
                 )
             }
 
+            // ✅ Only show Loading/Error states in UI; Success is handled by LaunchedEffect above
             when (googleLoginState) {
                 is Resource.Loading -> {
                     Spacer(modifier = Modifier.height(12.dp))
@@ -654,9 +667,6 @@ fun RegistrationScreen(
                             textAlign = TextAlign.Center
                         )
                     }
-                }
-                is Resource.Success -> {
-                    LaunchedEffect(key1 = "googleRegisterSuccess") { onRegisterSuccess() }
                 }
                 else -> {}
             }

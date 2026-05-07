@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
                 val mainNavController = rememberNavController()
                 this@MainActivity.mainNavController = mainNavController
 
+                // ✅ Single Activity-scoped AuthViewModel — the ONLY instance observed for navigation
                 val authViewModel: AuthViewModel = hiltViewModel()
                 val isLoggedIn by authViewModel.isLoggedIn.observeAsState(false)
 
@@ -69,13 +70,15 @@ class MainActivity : ComponentActivity() {
                         Log.d("MainActivity_UI", "✅✅✅ SHOWING MAINSCAFFOLD (LOGGED IN)")
                         MainScaffold(
                             rootNavController = rootNavController,
-                            mainNavController = mainNavController
+                            mainNavController = mainNavController,
+                            authViewModel = authViewModel  // ✅ pass Activity-scoped instance
                         )
                     }
                     else -> {
                         Log.d("MainActivity_UI", "❌❌❌ SHOWING AUTHNAVGRAPH (LOGGED OUT)")
                         AuthNavGraph(
-                            navController = rootNavController
+                            navController = rootNavController,
+                            authViewModel = authViewModel  // ✅ pass Activity-scoped instance
                         )
                     }
                 }
