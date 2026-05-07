@@ -35,7 +35,6 @@ fun FeedPostCard(
 
     var isLiked by remember(post.postId) { mutableStateOf(false) }
     var likeCount by remember(post.postId, post.likesCount) { mutableStateOf(post.likesCount) }
-    var commentCount by remember(post.postId, post.commentsCount) { mutableStateOf(post.commentsCount) }
 
     Card(
         modifier = modifier
@@ -167,7 +166,7 @@ fun FeedPostCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = { commentCount += 1 },
+                        onClick = { /* Comment action */ },
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
@@ -178,7 +177,7 @@ fun FeedPostCard(
                         )
                     }
                     Text(
-                        text = "$commentCount",
+                        text = "${post.commentsCount}",
                         fontSize = 14.sp,
                         color = grayText,
                         fontWeight = FontWeight.Medium
