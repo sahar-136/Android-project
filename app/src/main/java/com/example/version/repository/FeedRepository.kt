@@ -11,4 +11,6 @@ interface FeedRepository {
     fun getTrendingPosts(): Flow<Resource<List<Post>>>
 
     suspend fun getPostCommentsCount(postId: String): Flow<Int>
+
+    suspend fun getPostLikesCount(postId: String): Flow<Int>
 }

@@ -41,7 +41,7 @@ class FeedRepositoryImpl @Inject constructor(
                         post.copy(
                             id = doc.id,
                             uploadTimestamp = post.uploadTimestamp ?: Timestamp.now(),
-                            userProfileUrl = post.userProfileUrl ?: ""  // ✅ Ensure userProfileUrl
+                            userProfileUrl = post.userProfileUrl ?: ""
                         )
                     } else {
                         Post(id = doc.id, uploadTimestamp = Timestamp.now())
@@ -85,7 +85,7 @@ class FeedRepositoryImpl @Inject constructor(
                         post.copy(
                             id = doc.id,
                             uploadTimestamp = post.uploadTimestamp ?: Timestamp.now(),
-                            userProfileUrl = post.userProfileUrl ?: ""  // ✅ Ensure userProfileUrl
+                            userProfileUrl = post.userProfileUrl ?: ""
                         )
                     } else {
                         Post(id = doc.id, uploadTimestamp = Timestamp.now())
@@ -114,6 +114,26 @@ class FeedRepositoryImpl @Inject constructor(
                 }
 
                 val count = snapshot?.getLong("commentsCount")?.toInt() ?: 0
+                Log.d("FeedRepo-Comments", "Comment count for $postId: $count")
+                trySend(count)
+            }
+
+        awaitClose { listener.remove() }
+    }
+
+    // ✅ YE NAYA FUNCTION HAI - Like count real-time fetch کرتا ہے
+    override suspend fun getPostLikesCount(postId: String): Flow<Int> = callbackFlow {
+        val listener = firestore.collection("posts")
+            .document(postId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("FeedRepo-Likes", "Error fetching likes count: ${error.message}")
+                    trySend(0)
+                    return@addSnapshotListener
+                }
+
+                val count = snapshot?.getLong("likesCount")?.toInt() ?: 0
+                Log.d("FeedRepo-Likes", "Like count for $postId: $count")
                 trySend(count)
             }
 

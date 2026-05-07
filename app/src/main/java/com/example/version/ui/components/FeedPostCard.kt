@@ -52,11 +52,16 @@ fun FeedPostCard(
 ) {
 
     val isLiked by remember(feedViewModel.likeStatus) {
-        derivedStateOf { feedViewModel.isPostLiked(post.id) }  // ✅ postId
+        derivedStateOf { feedViewModel.isPostLiked(post.id) }
     }
 
     val likeCount by remember(feedViewModel.likeCounts) {
-        derivedStateOf { feedViewModel.getLikeCount(post.id) }  // ✅ postId
+        derivedStateOf { feedViewModel.getLikeCount(post.id) }
+    }
+
+    // ✅ YE NAYA LINE HAI - Comment count track کرنے کے لیے
+    val commentCount by remember(feedViewModel.commentCounts) {
+        derivedStateOf { feedViewModel.getCommentCount(post.id) }
     }
 
     Card(
@@ -168,7 +173,7 @@ fun FeedPostCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = {
-                            feedViewModel.togglePostLike(post.id)  // ✅ Pass postId
+                            feedViewModel.togglePostLike(post.id)
                         }
                     ) {
                         Icon(
@@ -206,8 +211,9 @@ fun FeedPostCard(
                         )
                     }
 
+                    // ✅ YE LINE BADAL GAYA - اب commentCount use ہو رہا ہے بجائے post.commentsCount کے
                     Text(
-                        text = "${post.commentsCount}",
+                        text = "$commentCount",
                         fontSize = 14.sp,
                         color = AppColors.TextGray
                     )

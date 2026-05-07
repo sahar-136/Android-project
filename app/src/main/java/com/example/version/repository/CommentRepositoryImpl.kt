@@ -35,10 +35,12 @@ class CommentRepositoryImpl @Inject constructor(
             )
 
             commentRef.set(comment).await()
+
+            // ✅ YE LINE UPDATED - اب FieldValue.increment استعمال ہو رہا ہے
             postRef.update("commentsCount", FieldValue.increment(1)).await()
 
-            // ✅ Backend (Cloud Functions) will create notification + send push
-            Log.d("CommentRepo", "✅ Comment added. Notification will be handled by backend.")
+            Log.d("CommentRepo", "✅ Comment added successfully for post: $postId")
+            Log.d("CommentRepo", "✅ Comment count incremented for post: $postId")
 
             Resource.Success(true)
         } catch (e: Exception) {
@@ -57,12 +59,15 @@ class CommentRepositoryImpl @Inject constructor(
 
         val listener = query.addSnapshotListener { snapshot, error ->
             if (error != null) {
+                Log.e("CommentRepo", "❌ Error fetching comments: ${error.message}")
                 trySend(Resource.Error(error.message ?: "Failed to fetch comments"))
                 return@addSnapshotListener
             }
 
             val comments = snapshot?.toObjects(Comment::class.java).orEmpty()
             val sorted = comments.sortedByDescending { it.commentDatetime?.toDate()?.time ?: 0L }
+
+            Log.d("CommentRepo", "✅ Loaded ${sorted.size} comments for post: $postId")
             trySend(Resource.Success(sorted))
         }
 
@@ -72,10 +77,19 @@ class CommentRepositoryImpl @Inject constructor(
     override suspend fun deleteComment(postId: String, commentId: String): Resource<Boolean> {
         return try {
             val postRef = firestore.collection("posts").document(postId)
+
+            // ✅ Comment delete کریں
             postRef.collection("comments").document(commentId).delete().await()
+
+            // ✅ Comment count کو decrement کریں
             postRef.update("commentsCount", FieldValue.increment(-1)).await()
+
+            Log.d("CommentRepo", "✅ Comment deleted successfully for post: $postId")
+            Log.d("CommentRepo", "✅ Comment count decremented for post: $postId")
+
             Resource.Success(true)
         } catch (e: Exception) {
+            Log.e("CommentRepo", "❌ Failed to delete comment: ${e.message}")
             Resource.Error(e.message ?: "Failed to delete comment")
         }
     }
