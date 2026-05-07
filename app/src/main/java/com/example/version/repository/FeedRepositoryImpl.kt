@@ -131,6 +131,7 @@ class FeedRepositoryImpl @Inject constructor(
                     trySend(0)
                     return@addSnapshotListener
                 }
+                Log.d("like_error","Fetch like count in repo")
 
                 val count = snapshot?.getLong("likesCount")?.toInt() ?: 0
                 Log.d("FeedRepo-Likes", "Like count for $postId: $count")

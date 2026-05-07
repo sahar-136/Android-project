@@ -1,5 +1,6 @@
 package com.example.version.ui.components
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -51,18 +52,13 @@ fun FeedPostCard(
     modifier: Modifier = Modifier
 ) {
 
-    val isLiked by remember(feedViewModel.likeStatus) {
-        derivedStateOf { feedViewModel.isPostLiked(post.id) }
-    }
+    val likeCounts by feedViewModel.likeCounts.collectAsState()
+    val likeStatus by feedViewModel.likeStatus.collectAsState()
+    val commentCounts by feedViewModel.commentCounts.collectAsState()
 
-    val likeCount by remember(feedViewModel.likeCounts) {
-        derivedStateOf { feedViewModel.getLikeCount(post.id) }
-    }
-
-    // ✅ YE NAYA LINE HAI - Comment count track کرنے کے لیے
-    val commentCount by remember(feedViewModel.commentCounts) {
-        derivedStateOf { feedViewModel.getCommentCount(post.id) }
-    }
+    val isLiked = likeStatus[post.id] ?: false
+    val likeCount = likeCounts[post.id] ?: 0
+    val commentCount = commentCounts[post.id] ?: 0
 
     Card(
         modifier = modifier
@@ -174,6 +170,7 @@ fun FeedPostCard(
                     IconButton(
                         onClick = {
                             feedViewModel.togglePostLike(post.id)
+                            Log.d("like_error","Lick Clicked with post id: ${post.id}")
                         }
                     ) {
                         Icon(

@@ -107,6 +107,7 @@ class FeedViewModel @Inject constructor(
         postLikeCountListeners[postId] = true
 
         viewModelScope.launch {
+            Log.d("like_error","Fetching Like count as $postLikeCountListeners")
             feedRepository.getPostLikesCount(postId).collect { count ->  // ✅ FEED REPOSITORY
                 _likeCounts.update { it + (postId to count) }
                 Log.d("FeedVM", "Like count for $postId: $count")
@@ -137,6 +138,7 @@ class FeedViewModel @Inject constructor(
         viewModelScope.launch {
             val result = likeRepository.togglePostLike(postId, userId)
             if (result is Resource.Success) {
+                Log.d("like_error","Result: ${result.data}")
                 val newStatus = result.data
                 _likeStatus.update { it + (postId to newStatus) }
                 fetchPostLikesCount(postId)

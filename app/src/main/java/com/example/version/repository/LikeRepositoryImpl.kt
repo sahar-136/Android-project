@@ -2,6 +2,7 @@ package com.example.version.repository
 
 import android.util.Log
 import com.example.version.util.Resource
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -13,65 +14,39 @@ class LikeRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore
 ) : LikeRepository {
 
-    override suspend fun togglePostLike(
-        postId: String,
-        userId: String
-    ): Resource<Boolean> {
+    override suspend fun togglePostLike(postId: String, userId: String): Resource<Boolean> {
         return try {
-            val likeDoc = firestore
-                .collection("posts")
-                .document(postId)
-                .collection("likes")
-                .document(userId)  // ✅ Firebase UID (har email ka alag UID)
-                .get()
-                .await()
+            val postRef = firestore.collection("posts").document(postId)
+            val likeRef = postRef.collection("likes").document(userId)
 
-            val isCurrentlyLiked = likeDoc.exists()
+            val result = firestore.runTransaction { tx ->
+                val likeSnap = tx.get(likeRef)
+                val isCurrentlyLiked = likeSnap.exists()
 
-            if (isCurrentlyLiked) {
-                // ✅ UNLIKE
-                firestore
-                    .collection("posts")
-                    .document(postId)
-                    .collection("likes")
-                    .document(userId)
-                    .delete()
-                    .await()
-
-                firestore
-                    .collection("posts")
-                    .document(postId)
-                    .update("likesCount", com.google.firebase.firestore.FieldValue.increment(-1))
-                    .await()
-
-                Log.d("LikeRepo", "❌ Post unliked: $postId by $userId")
-                Resource.Success(false)
-            } else {
-                // ✅ LIKE
-                firestore
-                    .collection("posts")
-                    .document(postId)
-                    .collection("likes")
-                    .document(userId)
-                    .set(
+                if (isCurrentlyLiked) {
+                    // UNLIKE
+                    tx.delete(likeRef)
+                    tx.update(postRef, "likesCount", FieldValue.increment(-1))
+                    false
+                } else {
+                    // LIKE
+                    tx.set(
+                        likeRef,
                         mapOf(
-                            "userId" to userId,  // ✅ Store Firebase UID
+                            "userId" to userId,
                             "likedAt" to com.google.firebase.Timestamp.now()
                         )
                     )
-                    .await()
+                    tx.update(postRef, "likesCount", FieldValue.increment(1))
+                    true
+                }
+            }.await()
 
-                firestore
-                    .collection("posts")
-                    .document(postId)
-                    .update("likesCount", com.google.firebase.firestore.FieldValue.increment(1))
-                    .await()
+            Log.d("like_error", "Transaction complete. New liked state = $result for post=$postId user=$userId")
+            Resource.Success(result)
 
-                Log.d("LikeRepo", "✅ Post liked: $postId by $userId")
-                Resource.Success(true)
-            }
         } catch (e: Exception) {
-            Log.e("LikeRepo", "❌ Failed to toggle post like: ${e.message}")
+            Log.e("like_error", "togglePostLike failed: ${e.message}", e)
             Resource.Error(e.message ?: "Failed to toggle like")
         }
     }
