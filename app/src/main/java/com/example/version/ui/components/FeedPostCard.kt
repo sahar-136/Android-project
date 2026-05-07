@@ -33,8 +33,9 @@ fun FeedPostCard(
     val grayText = Color(0xFF666666)             // Gray caption
     val borderGray = Color(0xFFF0F0F0)           // Subtle border
 
-    var isLiked by remember { mutableStateOf(false) }
-    var likeCount by remember { mutableStateOf(42) } // Mock like count
+    var isLiked by remember(post.postId) { mutableStateOf(false) }
+    var likeCount by remember(post.postId, post.likesCount) { mutableStateOf(post.likesCount) }
+    var commentCount by remember(post.postId, post.commentsCount) { mutableStateOf(post.commentsCount) }
 
     Card(
         modifier = modifier
@@ -140,7 +141,7 @@ fun FeedPostCard(
                     IconButton(
                         onClick = {
                             isLiked = !isLiked
-                            likeCount = if (isLiked) likeCount + 1 else likeCount - 1
+                            likeCount = if (isLiked) likeCount + 1 else (likeCount - 1).coerceAtLeast(0)
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
@@ -166,7 +167,7 @@ fun FeedPostCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = { /* Comment action */ },
+                        onClick = { commentCount += 1 },
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
@@ -177,7 +178,7 @@ fun FeedPostCard(
                         )
                     }
                     Text(
-                        text = "12",
+                        text = "$commentCount",
                         fontSize = 14.sp,
                         color = grayText,
                         fontWeight = FontWeight.Medium
