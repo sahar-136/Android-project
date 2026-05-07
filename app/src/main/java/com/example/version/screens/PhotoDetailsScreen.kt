@@ -1,4 +1,5 @@
 package com.example.version.screens
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,15 +18,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.example.version.models.Post
+import com.example.version.navigation.Routes
 import com.example.version.ui.theme.AppColors
 import com.example.version.util.Resource
 import com.example.version.viewmodel.PhotoDetailsViewModel
 import com.google.firebase.Timestamp
-import com.example.version.navigation.Routes
+
 fun formatTimestampPhotoDetails(timestamp: Timestamp?): String {
     if (timestamp == null) return "just now"
 
@@ -53,8 +55,11 @@ fun PhotoDetailsScreen(
     val isLiked by viewModel.isLiked.collectAsState()
     val likesCount by viewModel.likesCount.collectAsState()
 
+    // ✅ real-time profile image url
+    val profileImageUrl by viewModel.userProfileImageUrl.collectAsState()
+
     LaunchedEffect(postId) {
-        viewModel.loadPostDetails(postId)
+        viewModel.loadPostDetails(postId) // ✅ this will also start user listener after post loads
         viewModel.loadLikeStatus(postId)
         viewModel.loadLikesCount(postId)
     }
@@ -139,13 +144,9 @@ fun PhotoDetailsScreen(
                         .fillMaxSize()
                         .background(AppColors.BackgroundWhite)
                         .padding(paddingValues),
-                    contentPadding = PaddingValues(
-                        horizontal = 12.dp,
-                        vertical = 16.dp
-                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-
                     // USER HEADER
                     item {
                         Row(
@@ -159,12 +160,23 @@ fun PhotoDetailsScreen(
                                     .background(AppColors.LightGray),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    post.userName.take(1).uppercase(),
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = AppColors.PrimaryOrange
-                                )
+                                if (profileImageUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = profileImageUrl,
+                                        contentDescription = "User Profile",
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Text(
+                                        post.userName.take(1).uppercase(),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = AppColors.PrimaryOrange
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))
@@ -218,19 +230,14 @@ fun PhotoDetailsScreen(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.clickable {
-                                    viewModel.toggleLike(postId)
-                                }
+                                modifier = Modifier.clickable { viewModel.toggleLike(postId) }
                             ) {
                                 IconButton(
                                     onClick = { viewModel.toggleLike(postId) },
                                     modifier = Modifier.size(32.dp)
                                 ) {
                                     Icon(
-                                        imageVector = if (isLiked)
-                                            Icons.Filled.Favorite
-                                        else
-                                            Icons.Filled.FavoriteBorder,
+                                        imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                                         contentDescription = "Like",
                                         tint = if (isLiked) Color.Red else AppColors.TextGray,
                                         modifier = Modifier.size(20.dp)
@@ -253,9 +260,7 @@ fun PhotoDetailsScreen(
                                 }
                             ) {
                                 IconButton(
-                                    onClick = {
-                                        navController.navigate(Routes.comments(postId))
-                                    },
+                                    onClick = { navController.navigate(Routes.comments(postId)) },
                                     modifier = Modifier.size(32.dp)
                                 ) {
                                     Icon(
@@ -278,12 +283,8 @@ fun PhotoDetailsScreen(
                     // VIEW ALL COMMENTS BUTTON
                     item {
                         Button(
-                            onClick = {
-                                navController.navigate(Routes.comments(postId))
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppColors.PrimaryOrange
-                            ),
+                            onClick = { navController.navigate(Routes.comments(postId)) },
+                            colors = ButtonDefaults.buttonColors(containerColor = AppColors.PrimaryOrange),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(44.dp)
@@ -296,13 +297,11 @@ fun PhotoDetailsScreen(
                         }
                     }
 
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
+                    item { Spacer(modifier = Modifier.height(24.dp)) }
                 }
             }
 
-            else -> {}
+            else -> Unit
         }
     }
 }
