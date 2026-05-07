@@ -40,8 +40,6 @@ fun CommentsScreen(
     val commentsState by commentViewModel.comments.collectAsState()
     val addCommentState by commentViewModel.addCommentState.collectAsState()
     val deleteCommentState by commentViewModel.deleteCommentState.collectAsState()
-    val commentLikeCounts by commentViewModel.commentLikeCounts.collectAsState()
-    val commentLikeStatus by commentViewModel.commentLikeStatus.collectAsState()
 
     var commentText by remember { mutableStateOf("") }
     var selectedCommentForDelete by remember { mutableStateOf<String?>(null) }
@@ -188,11 +186,6 @@ fun CommentsScreen(
                             items(comments) { comment ->
                                 CommentItemCard(
                                     comment = comment,
-                                    likeCount = commentViewModel.getCommentLikeCount(comment.commentId),
-                                    isLiked = commentViewModel.isCommentLiked(comment.commentId),
-                                    onLikeClick = {
-                                        commentViewModel.toggleCommentLike(postId, comment.commentId)
-                                    },
                                     onDeleteClick = {
                                         selectedCommentForDelete = comment.commentId
                                         showDeleteDialog = true
@@ -352,9 +345,6 @@ fun CommentsScreen(
 @Composable
 fun CommentItemCard(
     comment: Comment,
-    likeCount: Int,
-    isLiked: Boolean,
-    onLikeClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -418,28 +408,6 @@ fun CommentItemCard(
                 color = AppColors.BlackText,
                 lineHeight = 18.sp
             )
-            Spacer(modifier = Modifier.height(10.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                IconButton(
-                    onClick = onLikeClick,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        if (isLiked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = "Like comment",
-                        tint = if (isLiked) AppColors.ErrorRed else AppColors.TextGray,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Text(
-                    "$likeCount likes",
-                    fontSize = 12.sp,
-                    color = AppColors.TextGray
-                )
-            }
         }
     }
 }

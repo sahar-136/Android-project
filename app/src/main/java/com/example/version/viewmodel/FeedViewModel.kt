@@ -27,9 +27,11 @@ class FeedViewModel @Inject constructor(
     val trendingPosts: StateFlow<Resource<List<Post>>> = _trendingPosts.asStateFlow()
     private var trendingStarted = false
 
+    // Like status map (postId → isLiked)
     private val _likeStatus = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val likeStatus: StateFlow<Map<String, Boolean>> = _likeStatus.asStateFlow()
 
+    // Like counts map (postId → count)
     private val _likeCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val likeCounts: StateFlow<Map<String, Int>> = _likeCounts.asStateFlow()
 
@@ -75,7 +77,7 @@ class FeedViewModel @Inject constructor(
     }
 
     private fun fetchPostLikeStatus(postId: String) {
-        val userId = authRepository.getCurrentUserId() ?: return
+        val userId = authRepository.getCurrentUserId() ?: return  // ✅ Get Firebase UID
         viewModelScope.launch {
             val isLiked = likeRepository.isPostLikedByUser(postId, userId)
             _likeStatus.update { it + (postId to isLiked) }
@@ -91,10 +93,10 @@ class FeedViewModel @Inject constructor(
     }
 
     fun togglePostLike(postId: String) {
-        val userId = authRepository.getCurrentUserId() ?: return
+        val userId = authRepository.getCurrentUserId() ?: return  // ✅ Get Firebase UID
 
         viewModelScope.launch {
-            val result = likeRepository.togglePostLike(postId, userId)
+            val result = likeRepository.togglePostLike(postId, userId)  // ✅ Pass Firebase UID
             if (result is Resource.Success) {
                 val newStatus = result.data
                 _likeStatus.update { it + (postId to newStatus) }

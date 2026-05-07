@@ -79,32 +79,4 @@ class CommentRepositoryImpl @Inject constructor(
             Resource.Error(e.message ?: "Failed to delete comment")
         }
     }
-
-    override suspend fun likeComment(postId: String, commentId: String): Resource<Boolean> {
-        return try {
-            firestore.collection("posts")
-                .document(postId)
-                .collection("comments")
-                .document(commentId)
-                .update("likeCount", FieldValue.increment(1))
-                .await()
-            Resource.Success(true)
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Failed to like comment")
-        }
-    }
-
-    override suspend fun unlikeComment(postId: String, commentId: String): Resource<Boolean> {
-        return try {
-            firestore.collection("posts")
-                .document(postId)
-                .collection("comments")
-                .document(commentId)
-                .update("likeCount", FieldValue.increment(-1))
-                .await()
-            Resource.Success(true)
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Failed to unlike comment")
-        }
-    }
 }

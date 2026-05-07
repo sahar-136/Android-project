@@ -16,18 +16,16 @@ interface AuthRepository {
         password: String
     ): Resource<User>
 
-
     suspend fun loginWithGoogle(
         idToken: String,
-        username: String? = null  // <-- Pass if user is new
+        username: String? = null
     ): Resource<User>
 
-    // Username availability check (for instant feedback)
     suspend fun isUsernameAvailable(username: String): Boolean
 
     fun logout()
-    fun getCurrentUserId(): String?
 
-    // Add this method in AuthRepository interface
+    fun getCurrentUserId(): String?  // ✅ Returns Firebase UID
+
     suspend fun sendPasswordResetEmail(email: String): Resource<Unit>
 }

@@ -30,7 +30,7 @@ class AuthRepositoryImpl @Inject constructor(
                 Resource.Error("Firebase user creation failed")
             } else {
                 val user = User(
-                    userId = firebaseUser.uid,
+                    userId = firebaseUser.uid,  // ✅ Firebase UID
                     name = name,
                     email = email,
                     username = username
@@ -58,7 +58,6 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Login failed")
         }
-
     }
 
     override suspend fun loginWithGoogle(idToken: String, username: String?): Resource<User> {
@@ -69,7 +68,7 @@ class AuthRepositoryImpl @Inject constructor(
             if (firebaseUser == null) {
                 return Resource.Error("Google sign-in failed")
             } else {
-                val docRef = firestore.collection("users").document(firebaseUser.uid)
+                val docRef = firestore.collection("users").document(firebaseUser.uid)  // ✅ Firebase UID
                 val doc = docRef.get().await()
                 val user: User =
                     if (doc.exists()) {
@@ -82,7 +81,7 @@ class AuthRepositoryImpl @Inject constructor(
                             return Resource.Error("Username already taken")
                         }
                         val newUser = User(
-                            userId = firebaseUser.uid,
+                            userId = firebaseUser.uid,  // ✅ Firebase UID
                             name = firebaseUser.displayName ?: "",
                             email = firebaseUser.email ?: "",
                             username = username,
@@ -108,7 +107,7 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override fun getCurrentUserId(): String? {
-        return auth.currentUser?.uid
+        return auth.currentUser?.uid  // ✅ Returns Firebase UID (not email!)
     }
 
     override suspend fun sendPasswordResetEmail(email: String): Resource<Unit> {
@@ -120,4 +119,3 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 }
-

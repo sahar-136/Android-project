@@ -30,22 +30,4 @@ interface LikeRepository {
     // GET ALL USERS WHO LIKED POST
     // ============================================
     suspend fun getPostLikes(postId: String): Flow<List<String>>
-
-    // ============================================
-    // TOGGLE LIKE ON COMMENT (Like/Unlike)
-    // ============================================
-    suspend fun toggleCommentLike(
-        postId: String,
-        commentId: String,
-        userId: String
-    ): Resource<Boolean>
-
-    // ============================================
-    // CHECK IF COMMENT IS LIKED BY USER
-    // ============================================
-    suspend fun isCommentLikedByUser(
-        postId: String,
-        commentId: String,
-        userId: String
-    ): Boolean
 }

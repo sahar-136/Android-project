@@ -1,10 +1,10 @@
 package com.example.version.viewmodel
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.version.models.Comment
 import com.example.version.repository.AuthRepository
 import com.example.version.repository.CommentRepository
-import com.example.version.repository.LikeRepository
 import com.example.version.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -14,7 +14,6 @@ import javax.inject.Inject
 @HiltViewModel
 class CommentViewModel @Inject constructor(
     private val commentRepository: CommentRepository,
-    private val likeRepository: LikeRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
@@ -27,12 +26,6 @@ class CommentViewModel @Inject constructor(
     private val _deleteCommentState = MutableStateFlow<Resource<Boolean>?>(null)
     val deleteCommentState: StateFlow<Resource<Boolean>?> = _deleteCommentState.asStateFlow()
 
-    private val _commentLikeStatus = MutableStateFlow<Map<String, Boolean>>(emptyMap())
-    val commentLikeStatus: StateFlow<Map<String, Boolean>> = _commentLikeStatus.asStateFlow()
-
-    private val _commentLikeCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val commentLikeCounts: StateFlow<Map<String, Int>> = _commentLikeCounts.asStateFlow()
-
     fun loadCommentsForPost(postId: String) {
         if (postId.isEmpty()) {
             _comments.value = Resource.Error("Post ID is empty")
@@ -43,32 +36,10 @@ class CommentViewModel @Inject constructor(
                 commentRepository.getCommentsByPostId(postId)
                     .collect { result ->
                         _comments.value = result
-                        if (result is Resource.Success) {
-                            val commentsList = result.data
-                            commentsList.forEach { comment ->
-                                fetchCommentLikeStatus(postId, comment.commentId)
-                                _commentLikeCounts.update { currentMap ->
-                                    currentMap + (comment.commentId to comment.likeCount)
-                                }
-                            }
-                        }
                     }
             } catch (e: Exception) {
                 _comments.value = Resource.Error(e.message ?: "Unknown error")
             }
-        }
-    }
-
-    private fun fetchCommentLikeStatus(postId: String, commentId: String) {
-        val userId = authRepository.getCurrentUserId()
-        if (userId == null) return
-        viewModelScope.launch {
-            try {
-                val isLiked = likeRepository.isCommentLikedByUser(postId, commentId, userId)
-                _commentLikeStatus.update { currentMap ->
-                    currentMap + (commentId to isLiked)
-                }
-            } catch (_: Exception) { }
         }
     }
 
@@ -122,40 +93,9 @@ class CommentViewModel @Inject constructor(
         }
     }
 
-    fun toggleCommentLike(postId: String, commentId: String) {
-        val userId = authRepository.getCurrentUserId()
-        if (userId == null) return
-        viewModelScope.launch {
-            try {
-                val result = likeRepository.toggleCommentLike(postId, commentId, userId)
-                if (result is Resource.Success) {
-                    val newStatus = result.data
-                    _commentLikeStatus.update { currentMap ->
-                        currentMap + (commentId to newStatus)
-                    }
-                    val currentCount = _commentLikeCounts.value[commentId] ?: 0
-                    val newCount = if (newStatus) currentCount + 1 else (currentCount - 1).coerceAtLeast(0)
-                    _commentLikeCounts.update { currentMap ->
-                        currentMap + (commentId to newCount)
-                    }
-                }
-            } catch (_: Exception) { }
-        }
-    }
-
-    fun getCommentLikeCount(commentId: String): Int {
-        return _commentLikeCounts.value[commentId] ?: 0
-    }
-
-    fun isCommentLiked(commentId: String): Boolean {
-        return _commentLikeStatus.value[commentId] ?: false
-    }
-
     fun resetStates() {
         _comments.value = Resource.Loading
         _addCommentState.value = null
         _deleteCommentState.value = null
-        _commentLikeStatus.value = emptyMap()
-        _commentLikeCounts.value = emptyMap()
     }
 }

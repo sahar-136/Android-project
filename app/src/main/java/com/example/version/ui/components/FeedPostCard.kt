@@ -52,11 +52,11 @@ fun FeedPostCard(
 ) {
 
     val isLiked by remember(feedViewModel.likeStatus) {
-        derivedStateOf { feedViewModel.isPostLiked(post.id) }
+        derivedStateOf { feedViewModel.isPostLiked(post.id) }  // ✅ postId
     }
 
     val likeCount by remember(feedViewModel.likeCounts) {
-        derivedStateOf { feedViewModel.getLikeCount(post.id) }
+        derivedStateOf { feedViewModel.getLikeCount(post.id) }  // ✅ postId
     }
 
     Card(
@@ -168,7 +168,7 @@ fun FeedPostCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(
                         onClick = {
-                            feedViewModel.togglePostLike(post.id)
+                            feedViewModel.togglePostLike(post.id)  // ✅ Pass postId
                         }
                     ) {
                         Icon(

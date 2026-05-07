@@ -22,7 +22,7 @@ class LikeRepositoryImpl @Inject constructor(
                 .collection("posts")
                 .document(postId)
                 .collection("likes")
-                .document(userId)
+                .document(userId)  // ✅ Firebase UID (har email ka alag UID)
                 .get()
                 .await()
 
@@ -55,7 +55,7 @@ class LikeRepositoryImpl @Inject constructor(
                     .document(userId)
                     .set(
                         mapOf(
-                            "userId" to userId,
+                            "userId" to userId,  // ✅ Store Firebase UID
                             "likedAt" to com.google.firebase.Timestamp.now()
                         )
                     )
@@ -67,9 +67,7 @@ class LikeRepositoryImpl @Inject constructor(
                     .update("likesCount", com.google.firebase.firestore.FieldValue.increment(1))
                     .await()
 
-                // ✅ Backend (Cloud Functions) will create notification + send push
-                Log.d("LikeRepo", "✅ Post liked. Notification will be handled by backend.")
-
+                Log.d("LikeRepo", "✅ Post liked: $postId by $userId")
                 Resource.Success(true)
             }
         } catch (e: Exception) {
@@ -87,7 +85,7 @@ class LikeRepositoryImpl @Inject constructor(
                 .collection("posts")
                 .document(postId)
                 .collection("likes")
-                .document(userId)
+                .document(userId)  // ✅ Firebase UID
                 .get()
                 .await()
 
@@ -110,6 +108,7 @@ class LikeRepositoryImpl @Inject constructor(
                 }
 
                 val likesCount = snapshot?.getLong("likesCount")?.toInt() ?: 0
+                Log.d("LikeRepo", "Fetched likes count for $postId: $likesCount")
                 trySend(likesCount)
             }
 
@@ -132,102 +131,10 @@ class LikeRepositoryImpl @Inject constructor(
                     doc.getString("userId")
                 } ?: emptyList()
 
+                Log.d("LikeRepo", "Fetched ${userIds.size} likes for post: $postId")
                 trySend(userIds)
             }
 
         awaitClose { listener.remove() }
-    }
-
-    override suspend fun toggleCommentLike(
-        postId: String,
-        commentId: String,
-        userId: String
-    ): Resource<Boolean> {
-        return try {
-            val likeDoc = firestore
-                .collection("posts")
-                .document(postId)
-                .collection("comments")
-                .document(commentId)
-                .collection("likes")
-                .document(userId)
-                .get()
-                .await()
-
-            val isCurrentlyLiked = likeDoc.exists()
-
-            if (isCurrentlyLiked) {
-                firestore
-                    .collection("posts")
-                    .document(postId)
-                    .collection("comments")
-                    .document(commentId)
-                    .collection("likes")
-                    .document(userId)
-                    .delete()
-                    .await()
-
-                firestore
-                    .collection("posts")
-                    .document(postId)
-                    .collection("comments")
-                    .document(commentId)
-                    .update("likeCount", com.google.firebase.firestore.FieldValue.increment(-1))
-                    .await()
-
-                Resource.Success(false)
-            } else {
-                firestore
-                    .collection("posts")
-                    .document(postId)
-                    .collection("comments")
-                    .document(commentId)
-                    .collection("likes")
-                    .document(userId)
-                    .set(
-                        mapOf(
-                            "userId" to userId,
-                            "likedAt" to com.google.firebase.Timestamp.now()
-                        )
-                    )
-                    .await()
-
-                firestore
-                    .collection("posts")
-                    .document(postId)
-                    .collection("comments")
-                    .document(commentId)
-                    .update("likeCount", com.google.firebase.firestore.FieldValue.increment(1))
-                    .await()
-
-                Resource.Success(true)
-            }
-        } catch (e: Exception) {
-            Log.e("LikeRepo", "Failed to toggle comment like: ${e.message}")
-            Resource.Error(e.message ?: "Failed to toggle comment like")
-        }
-    }
-
-    override suspend fun isCommentLikedByUser(
-        postId: String,
-        commentId: String,
-        userId: String
-    ): Boolean {
-        return try {
-            val likeDoc = firestore
-                .collection("posts")
-                .document(postId)
-                .collection("comments")
-                .document(commentId)
-                .collection("likes")
-                .document(userId)
-                .get()
-                .await()
-
-            likeDoc.exists()
-        } catch (e: Exception) {
-            Log.e("LikeRepo", "Failed to check if comment liked: ${e.message}")
-            false
-        }
     }
 }
